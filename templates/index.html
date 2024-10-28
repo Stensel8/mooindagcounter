@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Mooindag counter</h1>
+        <h2>{{ counter }}</h2>
+        <form action="/increment" method="post">
+            <!-- Aangepast input veld voor bericht -->
+            <input type="text" name="message" placeholder="Voer hier een bericht in">
+            <button type="submit">Increment</button>
+        </form>
+        <form action="/overview" method="get">
+            <button type="submit">Overview</button>
+        </form>
+
+        <div class="footer">Copyright Mooindagcounter</div> 
+    </div>
+</body>
+
+</html>

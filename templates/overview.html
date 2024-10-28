@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Count Overview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='overview.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Count Overview</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Count</th>
+                    <th>Bericht</th>
+                    <th>Datum</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for count, message, date in data %}
+                <tr>
+                    <td>{{ count }}</td>
+                    <td>"{{ message }}"</td>
+                    <td>{{ date.strftime('%d-%m-%Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('index') }}">Go back to counter</a>
+    </div>
+</body>
+</html>
