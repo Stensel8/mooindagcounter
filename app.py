@@ -99,15 +99,10 @@ def increment():
     message = request.form.get("message")
 
     # Save new record to databse
-    # save_counter(counter, message, date)
+    save_counter(counter, message, date)
 
-    discord_webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
-
-    if discord_webhook_url:
-        discord_data = {
-            "content": f"Counter: {counter}\n{message}"
-        }
-        requests.post(discord_webhook_url, json=discord_data)
+    # Set data to discordd webhook
+    send_discord(counter, message)
 
     return redirect(url_for('index'))
 
@@ -122,6 +117,31 @@ def overview():
         return render_template('overview.html', data=data)
     else:
         return redirect(url_for('index'))
+
+def send_discord(counter, message):
+    discord_webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+
+    if discord_webhook_url:
+        discord_data = {
+            "content": f"Counter: {counter}\n{message.capitalize()}"
+        }
+        # Alternative for sending webhook data
+    #     discord_data = {
+    #     "embeds": [
+    #         {
+    #             "title": message,
+    #             "description": f"**{counter}**",
+    #             "fields": [
+    #                 {
+    #                     "name": "Message",
+    #                     "value": message or "No message provided."
+    #                 }
+    #             ],
+    #             "color": 3066993  # Optioneel: Groen kleurcode
+    #         }
+    #     ]
+    # }
+        requests.post(discord_webhook_url, json=discord_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
