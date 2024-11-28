@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify
 from datetime import datetime 
 import time
 import mariadb
@@ -41,7 +41,7 @@ def load_counter():
         return result
 
 # Laad alle tellers en berichten uit de database
-def load_all_counters():
+def get_all_counters():
     conn = connect_db()
     cursor = conn.cursor()
 
@@ -49,6 +49,20 @@ def load_all_counters():
     cursor.execute(query)
 
     result = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return result
+
+# Get specific counter
+def get_counter(id):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    query = "SELECT * FROM counts WHERE id = %s"
+    cursor.execute(query, (id,))
+
+    result = cursor.fetchone()
     cursor.close()
     conn.close()
 
@@ -107,7 +121,7 @@ def increment():
 @app.route('/overview')
 def overview():
     # Get all data
-    data = load_all_counters()  
+    data = get_all_counters()  
 
     # Only show overview if it contains data
     if data:
@@ -123,6 +137,45 @@ def push_to_discord(counter, message):
             "content": f"Counter: {counter}\n{message.capitalize()}"
         }
         requests.post(discord_webhook_url, json=discord_data)
+
+
+@app.route('/api/counts', methods=['GET'])
+def api_counts():
+    counters = get_all_counters()
+    
+    formatted_counters = [
+        {
+            "count": counter[0],
+            "message": counter[1],
+            "date": counter[2]
+        }
+        for counter in counters
+    ]
+    return jsonify(formatted_counters)
+
+@app.route('/api/counts/<id>', methods=["GET"])
+def api_counts_id(id):
+    print(get_counter(1))
+    return jsonify(get_counter(id))
+
+@app.route('/api/delete/<id>', methods=["DELETE"])
+def api_remove(id):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    # Query to search record
+    query = "DELETE FROM counts WHERE id = %s"
+    cursor.execute(query, (id,))
+
+    query = "ALTER TABLE counts AUTO_INCREMENT = 1"
+    cursor.execute(query)
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({"message": f"Record with id {id} deleted"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
