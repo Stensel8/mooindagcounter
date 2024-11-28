@@ -125,22 +125,6 @@ def push_to_discord(counter, message):
         discord_data = {
             "content": f"Counter: {counter}\n{message.capitalize()}"
         }
-        # Alternative for sending webhook data
-    #     discord_data = {
-    #     "embeds": [
-    #         {
-    #             "title": message,
-    #             "description": f"**{counter}**",
-    #             "fields": [
-    #                 {
-    #                     "name": "Message",
-    #                     "value": message or "No message provided."
-    #                 }
-    #             ],
-    #             "color": 3066993  # Optioneel: Groen kleurcode
-    #         }
-    #     ]
-    # }
         requests.post(discord_webhook_url, json=discord_data)
 
 if __name__ == '__main__':
