@@ -44,11 +44,14 @@ def is_message_unique(message):
     conn = connect_db()
     cursor = conn.cursor()
 
-    # Get all messages
-    query = "SELECT message FROM counts"
+    # Check if message already exists
+    query = "SELECT message FROM counts WHERE message = ?"
+    cursor.execute(query, (message,))
 
+    rows = cursor.fetchall()
+    
+    # Return if message exists
+    return not len(rows) > 0
 
-
-
-message = "war is peace, freedom is slavery, ignorance is strength"
+message = "war is peace, freedom is slaveryy, ignorance is strength"
 print(is_message_unique(message))

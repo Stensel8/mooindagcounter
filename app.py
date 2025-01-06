@@ -86,15 +86,20 @@ def connect_db():
     )
     return conn
 
-# def is_message_unique(message):
-#     # Connect to database
-#     conn = connect_db()
-#     cursor = conn.cursor()
+def is_message_unique(message):
+    # Connect to database
+    conn = connect_db()
+    cursor = conn.cursor()
 
-#     # Get all messages
+    # Check if message already exists
+    query = "SELECT message FROM counts WHERE message = ?"
+    cursor.execute(query, (message,))
+
+    rows = cursor.fetchall()
     
-
-
+    # Return if message exists
+    return not len(rows) > 0
+    
 # Route Functions
 @app.route('/overview')
 def overview():
@@ -120,10 +125,8 @@ def increment():
     message = request.form.get("message").lower()
 
     # Check if message is unique
-    # if is_message_unique(message):
-        
-    # else:
-
+    if not is_message_unique(message):
+        return redirect(url_for('index'))
 
     # Collect client ip
     if not (client_ip := request.headers.get('X-Forwarded-For')):
