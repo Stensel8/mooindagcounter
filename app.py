@@ -102,6 +102,8 @@ def increment():
     # Get message from form
     message = request.form.get("message").lower()
 
+    
+
     # Collect client ip
     if not (client_ip := request.headers.get('X-Forwarded-For')):
         client_ip = request.remote_addr

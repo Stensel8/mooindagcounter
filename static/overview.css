@@ -72,13 +72,5 @@ p {
     table, th, td {
         font-size: 14px;
     }
-    h1 {
-        position: sticky; /* Sticky gedrag alleen binnen de media query */
-        top: 0; /* Zorg ervoor dat de header bovenaan blijft */
-        background-color: #fff; /* Geef een achtergrondkleur om tekst leesbaar te houden */
-        z-index: 100; /* Plaats boven andere elementen */
-        padding: 10px;
-        border-bottom: 1px solid #ddd; /* Optionele stijl om de header te onderscheiden */
-    }
 }
 
