@@ -88,3 +88,6 @@ input[type="text"]:focus, textarea:focus {
     margin-top: 30px; 
 }
 
+#error_message {
+    color: red;
+}

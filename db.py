@@ -38,7 +38,6 @@ def get_date():
 
     return timestamp
 
-
 def is_message_unique(message):
     # Connect to database
     conn = connect_db()

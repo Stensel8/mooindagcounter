@@ -126,7 +126,7 @@ def increment():
 
     # Check if message is unique
     if not is_message_unique(message):
-        return redirect(url_for('index'))
+        return render_template('index.html', error_message=True)
 
     # Collect client ip
     if not (client_ip := request.headers.get('X-Forwarded-For')):
@@ -137,7 +137,7 @@ def increment():
         banned_words = {word.strip().lower() for word in f}
 
     if any(word in message for word in banned_words):
-        return redirect(url_for('index'))
+        return render_template('index.html', banned_word=True)
     
     # Save new record to databse
     save_counter(counter, message, timestamp, client_ip)
