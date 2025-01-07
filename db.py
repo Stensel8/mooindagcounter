@@ -38,19 +38,37 @@ def get_date():
 
     return timestamp
 
-def is_message_unique(message):
+def message_exists(message):
     # Connect to database
     conn = connect_db()
     cursor = conn.cursor()
 
     # Check if message already exists
-    query = "SELECT message FROM counts WHERE message = ?"
+    query = "SELECT message FROM counts WHERE message = ? LIMIT 1"
     cursor.execute(query, (message,))
 
-    rows = cursor.fetchall()
+    result = cursor.fetchone()
     
     # Return if message exists
-    return not len(rows) > 0
+    return result is not None
 
-message = "war is peace, freedom is slaveryy, ignorance is strength"
-print(is_message_unique(message))
+def get_latest_counter():
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    query = "SELECT id FROM counts ORDER BY id DESC LIMIT 1"
+    cursor.execute(query)
+
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not result:
+        return 0
+    else:
+        return result[0]
+
+message = "war is peace, freedom is slavery, ignorance is strength"
+
+print(message_exists(message))
+print(get_latest_counter())

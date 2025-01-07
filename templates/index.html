@@ -21,9 +21,9 @@
         <h1>Mooindag counter</h1>
         <h2>{{ counter }}</h2>
         {% if error_message %}
-        <p id="error_message">Ey! Je message is niet uniek! Jammer joh.....</p>
+        <p id="error_message">De message is niet uniek!</p>
         {% elif banned_word %}
-        <p id="error_message">Ey! Die uitspraak is niet toegestaan!</p>
+        <p id="error_message">Deze uitspraak is niet toegestaan!</p>
         {% endif %}
         <form action="/increment" method="post">
             <!-- Aangepast input veld voor bericht -->

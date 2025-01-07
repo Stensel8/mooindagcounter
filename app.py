@@ -61,11 +61,11 @@ def get_all_counters():
 
     return result
 
-def load_counter():
+def get_latest_counter():
     conn = connect_db()
     cursor = conn.cursor()
 
-    query = "SELECT id, message FROM counts ORDER BY id DESC LIMIT 1"
+    query = "SELECT id FROM counts ORDER BY id DESC LIMIT 1"
     cursor.execute(query)
 
     result = cursor.fetchone()
@@ -73,9 +73,9 @@ def load_counter():
     conn.close()
 
     if not result:
-        return (0, "Eerste count")
+        return 0
     else:
-        return result
+        return result[0]
     
 def connect_db():
     conn = mariadb.connect(
@@ -86,19 +86,19 @@ def connect_db():
     )
     return conn
 
-def is_message_unique(message):
+def message_exists(message):
     # Connect to database
     conn = connect_db()
     cursor = conn.cursor()
 
     # Check if message already exists
-    query = "SELECT message FROM counts WHERE message = ?"
+    query = "SELECT message FROM counts WHERE message = ? LIMIT 1"
     cursor.execute(query, (message,))
 
-    rows = cursor.fetchall()
+    result = cursor.fetchone()
     
     # Return if message exists
-    return not len(rows) > 0
+    return result is not None
     
 # Route Functions
 @app.route('/overview')
@@ -117,16 +117,15 @@ def increment():
     timestamp = datetime.now().replace(microsecond=0)
 
     # Get current counter and increment
-    data = load_counter()
-    counter = data[0]
+    counter = get_latest_counter()
     counter += 1
 
     # Get message from form
     message = request.form.get("message").lower()
 
     # Check if message is unique
-    if not is_message_unique(message):
-        return render_template('index.html', error_message=True)
+    if message_exists(message):
+        return render_template('index.html', counter=counter, error_message=True)
 
     # Collect client ip
     if not (client_ip := request.headers.get('X-Forwarded-For')):
@@ -137,7 +136,7 @@ def increment():
         banned_words = {word.strip().lower() for word in f}
 
     if any(word in message for word in banned_words):
-        return render_template('index.html', banned_word=True)
+        return render_template('index.html', counter=counter, banned_word=True)
     
     # Save new record to databse
     save_counter(counter, message, timestamp, client_ip)
@@ -153,8 +152,7 @@ def robots_txt():
 
 @app.route('/')
 def index():
-    data = load_counter()
-    counter = data[0]
+    counter = get_latest_counter()
     return render_template('index.html', counter=counter)
 
 # API Methods
