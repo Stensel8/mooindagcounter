@@ -25,15 +25,17 @@
         {% elif banned_word %}
         <p id="error_message">Deze uitspraak is niet toegestaan!</p>
         {% endif %}
+
         <form action="/increment" method="post">
             <!-- Aangepast input veld voor bericht -->
             <input maxlength="300" type="text" name="message" placeholder="Voer hier een bericht in" required="true">
             <button type="submit">Increment</button>
         </form>
+
         <form action="/overview" method="get">
             <button type="submit">Overview</button>
         </form>
-
+        
         <form action="https://status.mooindagcounter.nl" method="get">
             <button type="submit">Status</button>
         </form>

@@ -194,6 +194,11 @@ def api_remove(id):
 
     return jsonify({"message": f"Record with id {id} deleted"}), 200
 
+# Easter egg
+@app.route('/api/delete/all', methods=["GET"])
+def meme():
+    return render_template('meme.html')
+
 if __name__ == '__main__':
     app.run(debug=True)
     
