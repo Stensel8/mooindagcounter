@@ -13,6 +13,7 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
+    overflow-y: hidden;
     font-family: 'Arial', sans-serif;
     background-attachment: fixed;
     background-image: url("images/background.avif"); /* Verander dit pad naar jouw afbeelding */

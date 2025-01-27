@@ -1,0 +1,5 @@
+flask
+mariadb
+requests
+python-dotenv
+gunicorn

@@ -62,29 +62,37 @@ def get_all_counters():
     return result
 
 def get_latest_counter():
-    conn = connect_db()
-    cursor = conn.cursor()
 
-    query = "SELECT id FROM counts ORDER BY id DESC LIMIT 1"
-    cursor.execute(query)
+    if (conn := connect_db()):
+        cursor = conn.cursor()
 
-    result = cursor.fetchone()
-    cursor.close()
-    conn.close()
+        query = "SELECT id FROM counts ORDER BY id DESC LIMIT 1"
+        cursor.execute(query)
 
-    if not result:
-        return 0
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not result:
+            return 0
+        else:
+            return result[0]
     else:
-        return result[0]
+        return "Database not connected!"
     
 def connect_db():
-    conn = mariadb.connect(
-        host="localhost",
+    try:
+        return mariadb.connect(
+        host=os.getenv("DB_HOST"),
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
         database=os.getenv("DB_NAME")
-    )
-    return conn
+        
+        )
+    except mariadb.Error as e:
+        # Log database error
+        print(f"Fout bij het verbinden met de database: {e}")
+        return None
 
 def message_exists(message):
     # Connect to database

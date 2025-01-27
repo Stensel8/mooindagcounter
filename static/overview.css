@@ -10,7 +10,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow-y: scroll;
+    overflow-y: hidden;
     background-attachment: fixed;
     background-image: url("images/background.avif"); /* Verander dit pad naar jouw afbeelding */
     background-size: cover;
