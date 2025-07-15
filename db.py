@@ -23,4 +23,23 @@ def connect_db():
         # Log database error
         return f"Fout bij het verbinden met de database: {e}"
 
-print(connect_db().server_name)
+def get_all_counters():
+    conn = connect_db()
+    cursor = conn.cursor(dictionary=True)
+
+    query = "SELECT id, message, timestamp FROM counts ORDER BY id DESC"
+    cursor.execute(query)
+
+    result = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return result
+
+counters = get_all_counters()
+
+time = datetime.now()
+date = time.date()
+onlytime = time.time().replace(microsecond=0)
+print(date)
+print(onlytime)

@@ -28,12 +28,12 @@
                 </tr>
             </thead>
             <tbody>
-                {% for count, message, timestamp in data %}
+                {% for row in data %}
                 <tr>
-                    <td>{{ count }}</td>
-                    <td>"{{ message }}"</td>
-                    <td>{{ timestamp.strftime('%d-%m-%Y') }}</td>
-                    <td>{{ timestamp.strftime('%H:%M') }}</td>
+                    <td>{{ row['id'] }}</td>
+                    <td>"{{ row['message'] }}"</td>
+                    <td>{{ row['date'] }}</td>
+                    <td>{{ row['time'] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

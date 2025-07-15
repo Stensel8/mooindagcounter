@@ -24,12 +24,12 @@ def push_to_discord(counter, message, timestamp):
         }
         requests.post(discord_webhook_url, json=discord_data)
 
-def save_counter(counter, message, timestamp, client_ip):
+def save_counter(counter, message, date, time, client_ip):
     conn = connect_db()
     cursor = conn.cursor()
 
-    query = "INSERT INTO counts (id, message, timestamp, client_ip) VALUES (%s, %s, %s, %s)"
-    cursor.execute(query, (counter, message, timestamp, client_ip))
+    query = "INSERT INTO counts (id, message, date, time, client_ip) VALUES (%s, %s, %s, %s, %s)"
+    cursor.execute(query, (counter, message, date, time, client_ip))
     conn.commit()
 
     cursor.close()
@@ -50,9 +50,9 @@ def get_counter(id):
 
 def get_all_counters():
     conn = connect_db()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
-    query = "SELECT id, message, timestamp FROM counts ORDER BY id DESC"
+    query = "SELECT id, message, date, time FROM counts ORDER BY id DESC"
     cursor.execute(query)
 
     result = cursor.fetchall()
@@ -122,7 +122,10 @@ def overview():
 
 @app.route('/increment', methods=['POST'])
 def increment():
-    timestamp = datetime.now().replace(microsecond=0)
+    # Gather timestamp information
+    timestamp = datetime.now()
+    date = timestamp.date()
+    time = timestamp.time().replace(microsecond=0)
 
     # Get current counter and increment
     counter = get_latest_counter()
@@ -140,14 +143,15 @@ def increment():
         client_ip = request.remote_addr
 
     # Get list with forbidden words
-    with open("banned_words.txt") as f:
-        banned_words = {word.strip().lower() for word in f}
+    #TODO Add this
+    # with open("banned_words.txt") as f:
+    #     banned_words = {word.strip().lower() for word in f}
 
-    if any(word in message for word in banned_words):
-        return render_template('index.html', counter=counter, banned_word=True)
+    # if any(word in message for word in banned_words):
+    #     return render_template('index.html', counter=counter, banned_word=True)
     
     # Save new record to databse
-    save_counter(counter, message, timestamp, client_ip)
+    save_counter(counter, message, date, time, client_ip)
 
     # Push message to discord
     push_to_discord(counter, message, timestamp)
@@ -208,5 +212,5 @@ def meme():
     return render_template('meme.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=80)
     
