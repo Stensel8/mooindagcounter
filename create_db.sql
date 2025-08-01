@@ -12,4 +12,3 @@ CREATE TABLE IF NOT EXISTS counts (
 
 CREATE USER IF NOT EXISTS 'mooindagcounter'@'localhost' IDENTIFIED BY '';
 GRANT ALL PRIVILEGES ON mooindagcounter.* TO 'mooindagcounter'@'localhost';
-
