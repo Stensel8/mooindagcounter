@@ -165,3 +165,11 @@ cython_debug/
 #.idea/
 lib64
 pyvenv.cfg
+bin/pip
+.gitignore
+bin/pip3.12
+bin/python3
+bin/python
+bin/python3.12
+bin/pip3
+bin/activate

@@ -127,16 +127,16 @@ def increment():
     date = timestamp.date()
     time = timestamp.time().replace(microsecond=0)
 
-    # Get current counter and increment
-    counter = get_latest_counter()
-    counter += 1
-
     # Get message from form
     message = request.form.get("message").lower()
 
     # Check if message is unique
     if message_exists(message):
         return render_template('index.html', counter=counter, error_message=True)
+    
+    # Get current counter and increment
+    counter = get_latest_counter()
+    counter += 1
 
     # Collect client ip
     if not (client_ip := request.headers.get('X-Forwarded-For')):
