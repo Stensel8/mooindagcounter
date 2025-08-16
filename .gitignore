@@ -173,4 +173,4 @@ bin/python
 bin/python3.12
 bin/pip3
 bin/activate
-bin
+bin/
