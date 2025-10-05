@@ -49,17 +49,23 @@ def get_counter(id):
     return result
 
 def get_all_counters():
+    # Attempt to connect to DB
     conn = connect_db()
-    cursor = conn.cursor(dictionary=True)
 
-    query = "SELECT id, message, date, time FROM counts ORDER BY id DESC"
-    cursor.execute(query)
+    # Only run query and return results if the connection is successfull
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT id, message, date, time FROM counts ORDER BY id DESC"
+        cursor.execute(query)
 
-    result = cursor.fetchall()
-    cursor.close()
-    conn.close()
+        result = cursor.fetchall()
+        cursor.close()
+        conn.close()
 
-    return result
+        return result
+    else:
+        # If the initial connection with the DB is unsuccessfull, return nothing
+        return None
 
 def get_latest_counter():
 

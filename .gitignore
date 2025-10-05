@@ -175,3 +175,4 @@ bin/pip3
 bin/activate
 bin/
 compose/
+env/
