@@ -1,0 +1,33 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "forkProcessing": "enabled",
+  "pinDigests": true,
+  "enabledManagers": [
+    "pip_requirements",
+    "dockerfile",
+    "docker-compose",
+    "github-actions",
+    "custom.regex"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/src/web/edge-script/rate-limit\\.js$/"
+      ],
+      "matchStrings": [
+        "edgescript-sdk@(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)"
+      ],
+      "depNameTemplate": "@bunny.net/edgescript-sdk",
+      "datasourceTemplate": "npm"
+    }
+  ]
+}
+

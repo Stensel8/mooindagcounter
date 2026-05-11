@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mooindag Counter</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon/favicon-96x96.png') }}" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon/favicon.svg') }}" />
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon/favicon.ico') }}" />
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/favicon/apple-touch-icon.png') }}" />
+  <meta name="apple-mobile-web-app-title" content="Mooindagcounter" />
+  <link rel="manifest" href="{{ url_for('static', filename='img/favicon/site.webmanifest') }}" />
+</head>
+
+<!-- Mooindag... de DB doet het niet. -->
+<body class="d-flex align-items-center min-vh-100">
+  <div class="container py-4">
+    <div class="row justify-content-center">
+      <div class="col-12 col-sm-8 col-md-6 col-lg-5">
+        <div class="card shadow text-center p-4">
+          <h1 class="fs-1 mb-3">Mooindag counter</h1>
+
+          <div class="alert alert-warning mb-3" role="alert">
+            <strong>Database uitgeschakeld</strong><br>
+            De teller is momenteel niet beschikbaar.
+          </div>
+
+          <p class="text-muted mb-4">
+            De database staat op dit moment uit.<br>
+            Kom later terug om een mooindag te registreren.
+          </p>
+
+          <form action="https://uptime.stensel.nl" method="get">
+            <button type="submit" class="btn btn-success w-100">Status</button>
+          </form>
+
+          <div class="mt-4 text-muted small">Copyright Mooindagcounter</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
