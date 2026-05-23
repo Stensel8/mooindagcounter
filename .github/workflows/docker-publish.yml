@@ -31,7 +31,7 @@ jobs:
 
       - name: Log in to GitHub Container Registry
         # Only log in when we're actually going to push (i.e. not a fork)
-        if: github.repository_owner == 'Stensel8'
+        if: github.repository == github.event.repository.full_name && !github.event.repository.fork
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ghcr.io
@@ -51,8 +51,8 @@ jobs:
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
         with:
           context: ${{ matrix.context }}
-          # Only push when running from the canonical repo, not from forks.
+          # Only push when running from the canonical (non-forked) repo.
           # Forks lack write:packages permission for foreign GHCR namespaces.
-          push: ${{ github.repository_owner == 'Stensel8' }}
+          push: ${{ !github.event.repository.fork }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
