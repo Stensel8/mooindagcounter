@@ -26,6 +26,15 @@
                     <h1 class="fs-1 mb-2">Mooindag counter</h1>
                     <h2 class="fs-3 text-secondary mb-4">{{ counter }}</h2>
 
+                    <!-- Afstudeercounter: telt live af naar 4 juli 2027 (Mooindag!) -->
+                    <div id="afstudeercounter" class="afstudeer mb-4" data-deadline="2027-07-04T23:59:59+02:00" aria-live="polite">
+                        <div class="afstudeer-titel">🎓 Afstudeercounter</div>
+                        <div class="afstudeer-klok">
+                            <div class="afstudeer-vak"><span class="afstudeer-getal" id="ac-dagen">--</span><span class="afstudeer-label">dagen</span></div>
+                            <div class="afstudeer-vak"><span class="afstudeer-getal" id="ac-uren">--</span><span class="afstudeer-label">uren</span></div>
+                        </div>
+                    </div>
+
                     {% if error_message == "empty" %}
                     <p class="text-danger">Voer een bericht in!</p>
                     {% elif error_message == "duplicate" %}
@@ -48,6 +57,35 @@
             </div>
         </div>
     </div>
+
+    <!-- Afteller voor de afstudeercounter; volledig client-side, toont alleen dagen en uren. -->
+    <script>
+    (function () {
+        const el = document.getElementById("afstudeercounter");
+        if (!el) return;
+        const deadline = new Date(el.dataset.deadline).getTime();
+        const titel = el.querySelector(".afstudeer-titel");
+        const dagenEl = document.getElementById("ac-dagen");
+        const urenEl = document.getElementById("ac-uren");
+
+        function tick() {
+            const diff = deadline - Date.now();
+            if (diff <= 0) {
+                dagenEl.textContent = "0";
+                urenEl.textContent = "0";
+                titel.textContent = "🎉 Afgestudeerd!";
+                clearInterval(timer);
+                return;
+            }
+            const uurTotaal = Math.floor(diff / 3600000);
+            dagenEl.textContent = Math.floor(uurTotaal / 24);
+            urenEl.textContent = uurTotaal % 24;
+        }
+
+        tick();
+        const timer = setInterval(tick, 60000);
+    })();
+    </script>
 </body>
 
 </html>
