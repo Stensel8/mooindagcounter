@@ -15,6 +15,46 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='img/favicon/apple-touch-icon.png') }}" />
     <meta name="apple-mobile-web-app-title" content="Mooindagcounter" />
     <link rel="manifest" href="{{ url_for('static', path='img/favicon/site.webmanifest') }}" />
+
+    <!-- Styling voor de live-updates staat bewust inline en niet in app.css:
+         HTML gaat uit met no-store maar statische bestanden worden door de
+         CDN gecachet, en dan kunnen JS en CSS van deze feature uit de pas
+         lopen. Inline reizen ze altijd samen. -->
+    <style>
+    #toastlaan {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 5rem;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 1080;
+    }
+
+    .vliegbericht {
+        position: absolute;
+        left: 100vw;
+        background: rgba(25, 135, 84, .92);
+        color: #fff;
+        padding: .35rem .9rem;
+        border-radius: 2rem;
+        white-space: nowrap;
+        font-size: .95rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+        animation: vliegdoor 8s linear forwards;
+    }
+
+    @keyframes vliegdoor {
+        to { transform: translateX(calc(-100vw - 100%)); }
+    }
+
+    #teller.tik {
+        animation: tellertik .4s ease;
+    }
+
+    @keyframes tellertik {
+        50% { transform: scale(1.35); color: #198754; }
+    }
+    </style>
 </head>
 
 <!-- Mooindag! -->
@@ -124,6 +164,7 @@
             el.style.animationDuration = (7 + Math.random() * 4) + "s";
             laan.appendChild(el);
             el.addEventListener("animationend", () => el.remove());
+            setTimeout(() => el.remove(), 12000);  // vangnet: altijd opruimen, ook zonder animatie
         }
 
         document.addEventListener("visibilitychange", () => {

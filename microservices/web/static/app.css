@@ -79,38 +79,3 @@ thead.table-success > tr > th {
     background-color: #009c82 !important;
     color:            #fff    !important;
 }
-
-/* --- Live-updates: voorbijvliegende meldingen + teller-tik --- */
-#toastlaan {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 5rem;
-    overflow: hidden;
-    pointer-events: none;
-    z-index: 1080;
-}
-
-.vliegbericht {
-    position: absolute;
-    left: 100vw;
-    background: rgba(25, 135, 84, .92);
-    color: #fff;
-    padding: .35rem .9rem;
-    border-radius: 2rem;
-    white-space: nowrap;
-    font-size: .95rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
-    animation: vliegdoor 8s linear forwards;
-}
-
-@keyframes vliegdoor {
-    to { transform: translateX(calc(-100vw - 100%)); }
-}
-
-#teller.tik {
-    animation: tellertik .4s ease;
-}
-
-@keyframes tellertik {
-    50% { transform: scale(1.35); color: #198754; }
-}
