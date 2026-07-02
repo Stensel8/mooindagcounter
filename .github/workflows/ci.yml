@@ -18,6 +18,24 @@ on:
 
 jobs:
 
+  # --- Variant-synchronisatie ---
+  # web/app.py, templates/ en static/ horen byte-voor-byte identiek te zijn
+  # tussen beide varianten; alleen de datalaag (web/db.py), requirements en
+  # de entrypoint mogen verschillen. Deze check voorkomt dat een fix in de
+  # ene variant de andere stilletjes mist.
+  variant-sync:
+    name: Varianten synchroon (app.py, templates, static)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Haal broncode op
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Vergelijk gedeelde bestanden tussen de varianten
+        run: |
+          diff microservices/web/app.py bunny-libsql/web/app.py
+          diff -r microservices/web/templates bunny-libsql/web/templates
+          diff -r microservices/web/static bunny-libsql/web/static
+
   # --- Linting ---
   # Controleert Python-code op stijl- en kwaliteitsfouten met Ruff.
   # Ruff is de moderne vervanger van flake8/pylint en is aanzienlijk sneller.

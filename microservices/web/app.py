@@ -24,8 +24,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 import db
 
-# Laad omgevingsvariabelen uit .env (alleen lokaal; in productie komen ze via Docker env).
-load_dotenv("./.env")
+# Laad .env alleen als het bestand lokaal bestaat (voor development)
+# In productie (Bunny) komen env vars via Docker, dus .env is niet nodig
+if os.path.exists("./.env"):
+    load_dotenv("./.env")
 
 logger = logging.getLogger("uvicorn.error")
 

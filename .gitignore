@@ -1,4 +1,5 @@
-*.sh
+# NB: geen '*.sh' hier — dat patroon hield eerder stilletjes een
+# gekopieerde entrypoint.sh buiten een commit (kapotte Docker-build).
 banned_words.txt
 *.backup
 *.bak

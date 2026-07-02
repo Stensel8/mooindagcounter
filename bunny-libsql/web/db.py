@@ -149,14 +149,20 @@ async def startup() -> None:
     global _client
     base = _base_url()
     if base is None:
+        # Zonder URL kan geen enkele query slagen; zeg dat duidelijk in de
+        # logs in plaats van elke request stil met een 503 te beantwoorden.
+        logger.error(
+            "Geen database-URL geconfigureerd: zet BUNNY_DATABASE_URL of LIBSQL_URL"
+        )
         _client = None
         return
-    headers = _auth_headers()
-    
     _client = httpx.AsyncClient(
         base_url=base,
-        headers=headers,
-        timeout=httpx.Timeout(30.0),
+        headers=_auth_headers(),
+        # Ruime read-timeout: Bunny Database spint down bij inactiviteit en
+        # heeft even nodig om wakker te worden. De connect-timeout is korter,
+        # zodat een echt onbereikbare database niet 30s per request kost.
+        timeout=httpx.Timeout(30.0, connect=10.0),
         # Retry op verbindingsfouten: een remote database over internet heeft
         # af en toe een haperende verbinding; dit vangt dat stilletjes op.
         transport=httpx.AsyncHTTPTransport(retries=2),
