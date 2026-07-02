@@ -42,7 +42,24 @@ zodat CDN's en browsers nooit een oude tellerstand tonen.
 | `GET /api/counts` | Alle counts als JSON, nieuwste eerst |
 | `GET /api/counts/{id}` | Eén count als JSON |
 | `DELETE /api/counts/{id}` | Verwijdert een count (wachtwoord vereist, zie hieronder) |
+| `WS /ws` | Live tellerstand + nieuwe berichten (zie hieronder) |
 | `GET /robots.txt` | Robots-regels |
+
+## Live updates
+
+De teller tikt live bij en nieuwe berichten van anderen vliegen als melding
+bovenin voorbij, via een WebSocket op `/ws`. Werkt over regio's heen zonder
+extra infrastructuur: pods delen geen geheugen, dus **elke worker peilt de
+database** (1 kleine SELECT per `LIVE_POLL_SECONDS`, standaard 4s) en stuurt
+veranderingen naar zijn eigen kijkers — de database is de gedeelde waarheid.
+
+Bewust zuinig opgezet:
+
+- gepeild wordt er **alleen zolang er kijkers verbonden zijn**;
+- de browser verbindt **alleen terwijl het tabblad zichtbaar is** (tab
+  weg = verbinding dicht = geen connection-minuten bij Bunny);
+- updates komen binnen ~`LIVE_POLL_SECONDS` overal aan — snel genoeg voor
+  een teller, en afgerond gratis qua reads en connection-minuten.
 
 ## Verwijderen (wachtwoord)
 

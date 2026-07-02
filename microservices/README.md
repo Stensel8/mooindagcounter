@@ -23,6 +23,7 @@ docker compose up --build  # app op http://localhost:8080
 | `DB_CONNECT_TIMEOUT` | `10` | Verbindingstimeout (s) |
 | `DB_POOL_RECYCLE` | `280` | Ververs idle poolverbindingen (s) |
 | `DELETE_PASSWORD` | _(leeg)_ | Verwijder-wachtwoord; leeg = verwijderen uit |
+| `LIVE_POLL_SECONDS` | `4` | Peil-interval voor live-updates (alleen met verbonden kijkers) |
 | `DISCORD_WEBHOOK_URL` | _(leeg)_ | Optioneel: Discord-meldingen |
 | `GUNICORN_WORKERS` | `2` | Aantal workers |
 

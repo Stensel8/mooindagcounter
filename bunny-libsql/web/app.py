@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -41,6 +41,12 @@ MAX_MESSAGE_LENGTH = 300
 DELETE_PASSWORD = os.getenv("DELETE_PASSWORD", "")
 TRUST_COOKIE = "mooindag_trust"
 TRUST_SECONDS = 600
+
+# Live-updates: hoe vaak een worker de database peilt zolang er websocket-
+# kijkers zijn. De pods in verschillende regio's delen geen geheugen; de
+# (gerepliceerde) database is hun enige gedeelde waarheid, dus dit pollen
+# ís de synchronisatie. Eén SELECT per interval per worker — verwaarloosbaar.
+LIVE_POLL_SECONDS = float(os.getenv("LIVE_POLL_SECONDS", "4"))
 
 # Welke regio/pod dit request afhandelde (Bunny injecteert BUNNYNET_MC_*);
 # gaat als X-Served-By header mee zodat multi-region te debuggen is.
@@ -120,6 +126,56 @@ def _is_trusted(request: Request) -> bool:
         and int(expires) > time.time()
         and hmac.compare_digest(signature, _sign(int(expires)))
     )
+
+
+# --- Live-updates via WebSocket --- Mooindag!
+
+_ws_clients: set[WebSocket] = set()
+_poller: asyncio.Task | None = None
+
+
+async def _poll_loop():
+    """
+    Draait alleen zolang er kijkers zijn en stopt daarna vanzelf (geen
+    kijkers = geen queries = geen kosten). Bij elke verandering van de
+    tellerstand gaan de nieuwe berichten naar alle lokale kijkers; andere
+    regio's zien dezelfde verandering via hun eigen poller.
+    """
+    last_id = None
+    while _ws_clients:
+        latest = await db.get_latest_counter()
+        if latest is not None and latest != last_id:
+            nieuw = []
+            if last_id is not None and latest > last_id:
+                nieuw = await db.get_counters_since(last_id)
+            payload = {
+                "counter": latest,
+                "nieuw": [{"id": r["id"], "message": r["message"]} for r in nieuw],
+            }
+            for client in list(_ws_clients):
+                try:
+                    await client.send_json(payload)
+                except Exception:
+                    _ws_clients.discard(client)
+            last_id = latest
+        await asyncio.sleep(LIVE_POLL_SECONDS)
+
+
+@app.websocket("/ws")
+async def websocket_live(ws: WebSocket):
+    """Duwt tellerstand + nieuwe berichten naar de browser zodra die veranderen."""
+    global _poller
+    await ws.accept()
+    _ws_clients.add(ws)
+    if _poller is None or _poller.done():
+        _poller = asyncio.create_task(_poll_loop())
+    try:
+        while True:
+            await ws.receive_text()  # clients sturen niets; dit wacht op de disconnect
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _ws_clients.discard(ws)
 
 
 # --- Applicatielogica --- Mooindag!

@@ -19,12 +19,15 @@
 
 <!-- Mooindag! -->
 <body class="d-flex align-items-center min-vh-100">
+    <!-- Baan voor live-meldingen die bovenin voorbij vliegen -->
+    <div id="toastlaan" aria-live="polite"></div>
+
     <div class="container py-4">
         <div class="row justify-content-center">
             <div class="col-12 col-sm-8 col-md-6 col-lg-5">
                 <div class="card shadow text-center p-4">
                     <h1 class="fs-1 mb-2">Mooindag counter</h1>
-                    <h2 class="fs-3 text-secondary mb-4">{{ counter }}</h2>
+                    <h2 id="teller" class="fs-3 text-secondary mb-4">{{ counter }}</h2>
 
                     <!-- Afstudeercounter: telt live af naar 4 juli 2027 (Mooindag!) -->
                     <div id="afstudeercounter" class="afstudeer mb-4" data-deadline="2027-07-04T23:59:59+02:00" aria-live="polite">
@@ -82,6 +85,52 @@
 
         tick();
         const timer = setInterval(tick, 60000);
+    })();
+    </script>
+
+    <!-- Live teller + voorbijvliegende meldingen via WebSocket. Zuinig:
+         alleen verbonden terwijl het tabblad zichtbaar is (tab weg =
+         verbinding dicht = geen connection-minuten bij Bunny). -->
+    <script>
+    (function () {
+        const teller = document.getElementById("teller");
+        const laan = document.getElementById("toastlaan");
+        let ws = null, herkansing = null;
+
+        function verbind() {
+            if (ws || document.visibilityState !== "visible") return;
+            ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+            ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (String(data.counter) !== teller.textContent) {
+                    teller.textContent = data.counter;
+                    teller.classList.remove("tik");
+                    void teller.offsetWidth;  // herstart de animatie
+                    teller.classList.add("tik");
+                }
+                for (const item of data.nieuw) vlieg(item.message);
+            };
+            ws.onclose = () => {
+                ws = null;
+                if (document.visibilityState === "visible") herkansing = setTimeout(verbind, 5000);
+            };
+        }
+
+        function vlieg(tekst) {
+            const el = document.createElement("div");
+            el.className = "vliegbericht";
+            el.textContent = "✨ " + tekst;
+            el.style.top = (8 + Math.random() * 44) + "px";
+            el.style.animationDuration = (7 + Math.random() * 4) + "s";
+            laan.appendChild(el);
+            el.addEventListener("animationend", () => el.remove());
+        }
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") { verbind(); }
+            else { clearTimeout(herkansing); if (ws) { ws.close(); ws = null; } }
+        });
+        verbind();
     })();
     </script>
 </body>

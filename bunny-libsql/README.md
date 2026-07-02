@@ -38,6 +38,7 @@ docker compose up --build   # app op http://localhost:8080
 | `BUNNY_DATABASE_AUTH_TOKEN` | _(leeg)_ | Access token uit Bunny's "Add Secrets" knop |
 | `LIBSQL_URL` / `LIBSQL_AUTH_TOKEN` | _(leeg)_ | Handmatige fallback voor URL/token |
 | `DELETE_PASSWORD` | _(leeg)_ | Verwijder-wachtwoord; leeg = verwijderen uit |
+| `LIVE_POLL_SECONDS` | `4` | Peil-interval voor live-updates (alleen met verbonden kijkers) |
 | `DISCORD_WEBHOOK_URL` | _(leeg)_ | Optioneel: Discord-meldingen |
 | `GUNICORN_WORKERS` | `2` | Aantal workers |
 

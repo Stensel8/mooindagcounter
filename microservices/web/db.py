@@ -176,3 +176,11 @@ async def message_exists(message: str) -> bool:
 
 async def delete_counter(entry_id: int) -> bool:
     return await _run("DELETE FROM counts WHERE id = %s", (entry_id,)) is not None
+
+
+async def get_counters_since(entry_id: int) -> list:
+    """Nieuwe counts na een gegeven ID (voor de live-updates); max 20."""
+    result = await _run(
+        "SELECT id, message FROM counts WHERE id > %s ORDER BY id LIMIT 20", (entry_id,)
+    )
+    return result["rows"] if result else []
