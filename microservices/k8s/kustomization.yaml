@@ -19,7 +19,7 @@ resources:
 # GHCR-namespace; overschrijf ze hier zonder de manifests aan te passen:
 #
 # images:
-#   - name: ghcr.io/stensel8/mooindagcounter-web
-#     newName: ghcr.io/<jouw-github-naam>/mooindagcounter-web
-#   - name: ghcr.io/stensel8/mooindagcounter-db
-#     newName: ghcr.io/<jouw-github-naam>/mooindagcounter-db
+#   - name: ghcr.io/stensel8/mooindag-web
+#     newName: ghcr.io/<jouw-github-naam>/mooindag-web
+#   - name: ghcr.io/stensel8/mooindag-db
+#     newName: ghcr.io/<jouw-github-naam>/mooindag-db

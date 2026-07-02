@@ -5,7 +5,7 @@ metadata:
   name: web
 spec:
   selector:
-    app: mooindagcounter-web
+    app: mooindag-web
   ports:
     - name: http
       port: 80

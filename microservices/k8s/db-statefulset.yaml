@@ -14,15 +14,15 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mooindagcounter-db
+      app: mooindag-db
   template:
     metadata:
       labels:
-        app: mooindagcounter-db
+        app: mooindag-db
     spec:
       containers:
         - name: mariadb
-          image: ghcr.io/stensel8/mooindagcounter-db:latest
+          image: ghcr.io/stensel8/mooindag-db:latest
           ports:
             - containerPort: 3306
               name: mysql
@@ -34,12 +34,12 @@ spec:
             - name: MARIADB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mooindagcounter-db
+                  name: mooindag-db
                   key: MARIADB_ROOT_PASSWORD
             - name: MARIADB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mooindagcounter-db
+                  name: mooindag-db
                   key: DB_PASSWORD
           volumeMounts:
             - name: db-data

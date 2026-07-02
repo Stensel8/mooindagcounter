@@ -196,9 +196,9 @@ naar hun eigen namespace, zonder aanpassingen:
 
 | Image | Bron | Variant |
 |---|---|---|
-| `ghcr.io/<owner>/mooindagcounter-web` | `microservices/web` | microservices |
-| `ghcr.io/<owner>/mooindagcounter-db` | `microservices/db` | microservices |
-| `ghcr.io/<owner>/mooindagcounter-libsql` | `bunny-libsql/web` | bunny-libsql |
+| `ghcr.io/<owner>/mooindag-web` | `microservices/web` | microservices |
+| `ghcr.io/<owner>/mooindag-db` | `microservices/db` | microservices |
+| `ghcr.io/<owner>/mooindag-libsql` | `bunny-libsql/web` | bunny-libsql |
 
 Goed om te weten:
 
