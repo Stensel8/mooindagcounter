@@ -9,15 +9,15 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      app: mooindagcounter-web
+      app: mooindag-web
   template:
     metadata:
       labels:
-        app: mooindagcounter-web
+        app: mooindag-web
     spec:
       containers:
         - name: web
-          image: ghcr.io/stensel8/mooindagcounter-web:latest
+          image: ghcr.io/stensel8/mooindag-web:latest
           ports:
             - containerPort: 8080
               name: http
@@ -33,7 +33,7 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mooindagcounter-db
+                  name: mooindag-db
                   key: DB_PASSWORD
             - name: GUNICORN_WORKERS
               value: "2"

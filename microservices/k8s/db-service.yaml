@@ -8,7 +8,7 @@ metadata:
 spec:
   clusterIP: None
   selector:
-    app: mooindagcounter-db
+    app: mooindag-db
   ports:
     - name: mysql
       port: 3306

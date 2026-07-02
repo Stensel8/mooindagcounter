@@ -32,6 +32,11 @@ CREATE TABLE IF NOT EXISTS counts (
 _pool: aiomysql.Pool | None = None
 _pool_lock = asyncio.Lock()
 
+# Of de counts-tabel bevestigd bestaat. Zolang dat niet zo is, wordt de
+# CREATE TABLE bij elk request opnieuw geprobeerd, zodat een database die
+# trager opstart dan de webcontainer alsnog zijn schema krijgt.
+_schema_ready = False
+
 
 def _env_flag(name: str, default: str) -> bool:
     """Leest een boolean omgevingsvariabele ('true', '1', 'yes', 'on')."""
@@ -58,11 +63,15 @@ def _build_ssl_context() -> ssl.SSLContext | None:
 
 
 async def _ensure_schema(pool: aiomysql.Pool) -> None:
-    """Maakt de counts-tabel aan als die nog niet bestaat."""
+    """Maakt de counts-tabel aan als die nog niet bestaat (eenmalig bij succes)."""
+    global _schema_ready
+    if _schema_ready:
+        return
     try:
         async with pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(SCHEMA_SQL)
+        _schema_ready = True
     except Exception as e:
         logger.warning("Schema-controle mislukt: %s", e)
 
@@ -129,6 +138,7 @@ async def _query(sql: str, params: tuple = ()) -> list | None:
     pool = await _get_pool()
     if pool is None:
         return None
+    await _ensure_schema(pool)
     try:
         async with pool.acquire() as conn:
             # Herstelt een stilletjes verbroken verbinding (reconnect=True is
@@ -148,6 +158,7 @@ async def _execute(sql: str, params: tuple = ()) -> bool:
     pool = await _get_pool()
     if pool is None:
         return False
+    await _ensure_schema(pool)
     try:
         async with pool.acquire() as conn:
             await conn.ping()
@@ -164,6 +175,7 @@ async def _insert(sql: str, params: tuple = ()) -> int | None:
     pool = await _get_pool()
     if pool is None:
         return None
+    await _ensure_schema(pool)
     try:
         async with pool.acquire() as conn:
             await conn.ping()

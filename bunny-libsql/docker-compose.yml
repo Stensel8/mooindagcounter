@@ -3,7 +3,7 @@
 # In productie is er GEEN database-container: de app praat rechtstreeks met
 # Bunny Database. Voor lokaal ontwikkelen draait hier sqld (de open-source
 # libSQL-server waar Bunny Database op gebaseerd is) als drop-in vervanger.
-name: mooindagcounter-libsql
+name: mooindag-libsql
 
 services:
   app:

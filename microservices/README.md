@@ -41,7 +41,7 @@ App draait op `http://localhost:8080`.
 
 Tabel `counts`. De web-app maakt de tabel zelf aan als die nog niet bestaat
 (`CREATE TABLE IF NOT EXISTS` bij het opzetten van de verbindingspool), zodat
-elke lege MySQL/MariaDB-database werkt. Het `mooindagcounter-db` image bevat
+elke lege MySQL/MariaDB-database werkt. Het `mooindag-db` image bevat
 daarnaast `db/create_db.sql` als init-script.
 
 | Kolom | Type |
@@ -57,8 +57,8 @@ daarnaast `db/create_db.sql` als init-script.
 Draai web en database **nooit samen in één multi-region app** (zie de
 [hoofd-README](../README.md) voor waarom). Splits in twee apps:
 
-1. Maak een **nieuwe Magic Containers app** (bijv. `mooindagcounter-db`) met
-   alleen het `mooindagcounter-db` image, het `db_data` volume op
+1. Maak een **nieuwe Magic Containers app** (bijv. `mooindag-db`) met
+   alleen het `mooindag-db` image, het `db_data` volume op
    `/var/lib/mysql`, **1 regio, autoscaling uit (vast 1 pod)** en een
    endpoint dat poort 3306 exposet.
 2. Verwijder in de web-app de db-container én het volume, en wijs de
@@ -89,7 +89,7 @@ Kubernetes-cluster (k3s, minikube, managed):
 ```bash
 # 1. Secret met wachtwoorden aanmaken (eenmalig, zie k8s/secret.example.yaml)
 kubectl create namespace mooindagcounter
-kubectl -n mooindagcounter create secret generic mooindagcounter-db \
+kubectl -n mooindagcounter create secret generic mooindag-db \
   --from-literal=MARIADB_ROOT_PASSWORD='...' \
   --from-literal=DB_PASSWORD='...'
 

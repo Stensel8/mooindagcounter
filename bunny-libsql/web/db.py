@@ -36,15 +36,25 @@ CREATE TABLE IF NOT EXISTS counts (
 # Gedeelde HTTP-client met connection pooling; aangemaakt in startup().
 _client: httpx.AsyncClient | None = None
 
+# Of de counts-tabel bevestigd bestaat. Zolang dat niet zo is, wordt de
+# CREATE TABLE bij elk request opnieuw geprobeerd: Bunny Database spint
+# down bij inactiviteit, dus de database kan tijdens het opstarten van de
+# app nog onbereikbaar zijn geweest.
+_schema_ready = False
+
 
 def _base_url() -> str:
     """
-    Normaliseert LIBSQL_URL naar een http(s)-URL.
+    Normaliseert de database-URL naar een http(s)-URL.
+    Leest LIBSQL_URL, of BUNNY_DATABASE_URL — de naam die Bunny's
+    "Add Secrets to Magic Container App" knop automatisch injecteert.
     Bunny geeft URL's in de vorm libsql://<id>.lite.bunnydb.net; dat is
     hetzelfde endpoint over HTTPS. Voor lokale ontwikkeling met sqld
     (docker compose) is het http://db:8080.
     """
-    url = os.getenv("LIBSQL_URL", "http://localhost:8080").strip().rstrip("/")
+    url = (
+        os.getenv("LIBSQL_URL") or os.getenv("BUNNY_DATABASE_URL") or "http://localhost:8080"
+    ).strip().rstrip("/")
     for old, new in (("libsql://", "https://"), ("wss://", "https://"), ("ws://", "http://")):
         if url.startswith(old):
             return new + url.removeprefix(old)
@@ -52,8 +62,15 @@ def _base_url() -> str:
 
 
 def _auth_headers() -> dict:
-    """Bearer-token uit het Bunny dashboard; leeg bij een lokale sqld zonder auth."""
-    token = os.getenv("LIBSQL_AUTH_TOKEN", "").strip()
+    """
+    Bearer-token voor de database. Leest LIBSQL_AUTH_TOKEN, of
+    BUNNY_DATABASE_AUTH_TOKEN (automatisch geinjecteerd door Bunny's
+    "Add Secrets" knop; de app schrijft, dus niet het READ_ONLY-token).
+    Leeg bij een lokale sqld zonder auth.
+    """
+    token = (
+        os.getenv("LIBSQL_AUTH_TOKEN") or os.getenv("BUNNY_DATABASE_AUTH_TOKEN") or ""
+    ).strip()
     return {"Authorization": f"Bearer {token}"} if token else {}
 
 
@@ -116,6 +133,17 @@ async def _pipeline(sql: str, params: tuple = ()) -> dict | None:
         return None
 
 
+async def _ensure_schema() -> None:
+    """Maakt de counts-tabel aan als die nog niet bestaat (eenmalig bij succes)."""
+    global _schema_ready
+    if _schema_ready:
+        return
+    if await _pipeline(SCHEMA_SQL) is not None:
+        _schema_ready = True
+    else:
+        logger.warning("Schema-controle mislukt; database mogelijk (nog) niet bereikbaar")
+
+
 async def startup() -> None:
     """Opent de gedeelde HTTP-client en maakt het schema aan als dat nog niet bestaat."""
     global _client
@@ -127,8 +155,7 @@ async def startup() -> None:
         # af en toe een haperende verbinding; dit vangt dat stilletjes op.
         transport=httpx.AsyncHTTPTransport(retries=2),
     )
-    if await _pipeline(SCHEMA_SQL) is None:
-        logger.warning("Schema-controle mislukt; database mogelijk (nog) niet bereikbaar")
+    await _ensure_schema()
 
 
 async def shutdown() -> None:
@@ -142,6 +169,7 @@ async def _query(sql: str, params: tuple = ()) -> list | None:
     Voert een SELECT-query uit en geeft alle rijen terug als lijst van dicts.
     Geeft None terug bij een DB-fout of onbereikbare DB.
     """
+    await _ensure_schema()
     result = await _pipeline(sql, params)
     if result is None:
         return None
@@ -154,11 +182,13 @@ async def _query(sql: str, params: tuple = ()) -> list | None:
 
 async def _execute(sql: str, params: tuple = ()) -> bool:
     """Voert een niet-SELECT statement uit. Geeft True terug bij succes."""
+    await _ensure_schema()
     return await _pipeline(sql, params) is not None
 
 
 async def _insert(sql: str, params: tuple = ()) -> int | None:
     """Voert een INSERT uit en geeft het nieuwe rij-ID terug."""
+    await _ensure_schema()
     result = await _pipeline(sql, params)
     if result is None or result.get("last_insert_rowid") is None:
         return None

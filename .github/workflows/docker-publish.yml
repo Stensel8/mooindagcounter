@@ -1,7 +1,7 @@
 name: Build & Push to GHCR
 
 # Fork-vriendelijk: images worden gepusht naar de GHCR-namespace van de
-# repo-eigenaar (ghcr.io/<owner>/mooindagcounter-*). Een fork publiceert dus
+# repo-eigenaar (ghcr.io/<owner>/mooindag-*). Een fork publiceert dus
 # automatisch naar zijn eigen namespace en kan nooit bij de upstream-images.
 #
 # Dit kan veilig zonder fork-guards: de workflow draait alleen op een push
@@ -36,12 +36,12 @@ jobs:
       matrix:
         include:
           # Microservices-variant: web + MariaDB (docker compose / Kubernetes)
-          - image: mooindagcounter-web
+          - image: mooindag-web
             context: ./microservices/web
-          - image: mooindagcounter-db
+          - image: mooindag-db
             context: ./microservices/db
           # Bunny Database-variant: 1 stateless container, database is managed
-          - image: mooindagcounter-libsql
+          - image: mooindag-libsql
             context: ./bunny-libsql/web
 
     steps:
