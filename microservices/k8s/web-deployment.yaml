@@ -37,18 +37,17 @@ spec:
                   key: DB_PASSWORD
             - name: GUNICORN_WORKERS
               value: "2"
-          # Readiness op /healthz: een pod die de database niet kan bereiken
-          # krijgt geen verkeer meer, maar blijft wel draaien.
+          # Readiness op /: geeft 503 zolang de database onbereikbaar is,
+          # dus zo'n pod krijgt geen verkeer maar blijft wel draaien.
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
-          # Liveness bewust NIET op /healthz: die geeft 503 als de database
-          # plat ligt, en dan zou Kubernetes gezonde web-pods in een
-          # herstart-loop trekken terwijl het probleem bij de database ligt.
-          # TCP-check volstaat: leeft het gunicorn-proces nog?
+          # Liveness bewust alleen een TCP-check (leeft gunicorn nog?):
+          # een HTTP-check zou bij een database-storing gezonde web-pods
+          # in een herstart-loop trekken.
           livenessProbe:
             tcpSocket:
               port: http

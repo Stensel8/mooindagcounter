@@ -15,7 +15,7 @@
   <link rel="manifest" href="{{ url_for('static', path='img/favicon/site.webmanifest') }}" />
 </head>
 
-<!-- Mooindag... de DB doet het niet. -->
+<!-- Mooindag... er is iets stuk. -->
 <body class="d-flex align-items-center min-vh-100">
   <div class="container py-4">
     <div class="row justify-content-center">
@@ -24,16 +24,16 @@
           <h1 class="fs-1 mb-3">Mooindag counter</h1>
 
           <div class="alert alert-warning mb-3" role="alert">
-            <strong>Database uitgeschakeld</strong><br>
-            De teller is momenteel niet beschikbaar.
+            <strong>Oeps, geen mooie dag 😅</strong><br>
+            De teller doet het heel even niet.
           </div>
 
           <p class="text-muted mb-4">
-            De database staat op dit moment uit.<br>
-            Kom later terug om een mooindag te registreren.
+            {% if reden %}Wat er misgaat: {{ reden }}.<br>{% endif %}
+            Probeer het zo nog eens — grote kans dat-ie het dan weer gewoon doet.
           </p>
 
-          <a href="https://status.mooindagcounter.nl" class="btn btn-success w-100">Status</a>
+          <a href="/" class="btn btn-success w-100">Opnieuw proberen</a>
 
           <div class="mt-4 text-muted small">Copyright Mooindagcounter</div>
         </div>

@@ -1,52 +1,34 @@
 # Bunny Database-variant (libSQL)
 
-FastAPI-teller met [Bunny Database](https://bunny.net/database/) als managed
-datalaag. Eén stateless container — geen database-container, geen volumes,
-geen InnoDB, niets om te beheren. Bunny repliceert de data automatisch naar
-de regio's waar je app draait, dus reads komen altijd uit de buurt.
+Eén stateless container met [Bunny Database](https://bunny.net/database/)
+als managed datalaag — geen database-container, geen volumes, niets om te
+beheren. Bunny repliceert de data naar de regio's waar je app draait.
 
-## Hoe het werkt
-
-Bunny Database is gebouwd op libSQL (een SQLite-fork) en spreekt het standaard
-*Hrana over HTTP* protocol: statements gaan als JSON naar
-`POST {LIBSQL_URL}/v2/pipeline` met een Bearer-token — precies wat Bunny's
-eigen client-libraries ook doen. Er is geen officiële Python SDK, dus
-`web/db.py` spreekt dat protocol direct via `httpx` (geen extra dependencies).
-
-`web/app.py` (routes, teller-logica) is identiek aan de microservices-variant;
-alleen de datalaag (`web/db.py`) verschilt tussen de twee.
+Bunny Database spreekt het standaard libSQL/sqld-protocol (*Hrana over
+HTTP*): statements als JSON naar `POST /v2/pipeline` met een Bearer-token.
+Er is geen officiële Python SDK, dus `web/db.py` praat daar rechtstreeks
+mee via `httpx`.
 
 ## Deployment op Bunny.net
 
-1. **Maak een database aan** in het [Bunny dashboard](https://dash.bunny.net)
-   (Database → Add Database). Kies als primaire regio waar je meeste bezoekers
-   zitten (bijv. Amsterdam) en voeg replica-regio's toe waar je app draait.
-2. Klik op de connect-pagina op **"Add Secrets to Magic Container App"** en
-   kies je app + web-container. Bunny injecteert dan `BUNNY_DATABASE_URL` en
-   `BUNNY_DATABASE_AUTH_TOKEN` — de app leest die namen direct. (Handmatig kan
-   ook, via `LIBSQL_URL` + `LIBSQL_AUTH_TOKEN`; het READ_ONLY-token wordt niet
-   gebruikt, want de app schrijft ook.)
-3. Pas je Magic Containers app aan: wissel het image van de web-container naar
-   `mooindag-libsql` en **verwijder de db-container en het volume** —
-   die zijn niet meer nodig. De oude `DB_*` variabelen mogen ook weg.
-4. Zet multi-region en autoscaling zo ruim als je wilt — de app is volledig
-   stateless, dus elke pod in elke regio ziet dezelfde teller.
+1. Maak een database aan (dashboard → Database → Add Database); kies je
+   primaire regio en voeg replica-regio's toe waar je app draait.
+2. Klik op de connect-pagina op **"Add Secrets to Magic Container App"** —
+   dat zet `BUNNY_DATABASE_URL` en `BUNNY_DATABASE_AUTH_TOKEN`, en die
+   leest de app direct.
+3. App-config: alleen het `mooindag-libsql` image, geen db-container,
+   geen volume. Multi-region en autoscaling mogen vol open.
 
-De app maakt de `counts`-tabel zelf aan bij de eerste start — een verse,
-lege database is genoeg.
+De app maakt de `counts`-tabel zelf aan; een verse, lege database is genoeg.
 
 ## Lokaal draaien
 
-In productie is er geen database-container, maar lokaal wil je niet tegen de
-echte Bunny Database ontwikkelen. De docker-compose start daarom
-[sqld](https://github.com/tursodatabase/libsql) — de open-source libSQL-server
-waar Bunny Database op gebaseerd is — als drop-in vervanger:
+De compose start [sqld](https://github.com/tursodatabase/libsql) (de
+open-source libSQL-server) als lokale vervanger van Bunny Database:
 
 ```bash
-docker compose up --build
+docker compose up --build   # app op http://localhost:8080
 ```
-
-App draait op `http://localhost:8080`.
 
 ## Omgevingsvariabelen
 
@@ -54,32 +36,18 @@ App draait op `http://localhost:8080`.
 |---|---|---|
 | `BUNNY_DATABASE_URL` | _(leeg)_ | Database-URL uit Bunny's "Add Secrets" knop, of `libsql://…` |
 | `BUNNY_DATABASE_AUTH_TOKEN` | _(leeg)_ | Access token uit Bunny's "Add Secrets" knop |
-| `LIBSQL_URL` | _(leeg)_ | Handmatige fallback voor de database-URL |
-| `LIBSQL_AUTH_TOKEN` | _(leeg)_ | Handmatige fallback voor het access token |
-| `DISCORD_WEBHOOK_URL` | _(leeg)_ | Optioneel: Discord meldingen |
-| `GUNICORN_WORKERS` | `2` | Aantal Gunicorn+Uvicorn workers |
+| `LIBSQL_URL` / `LIBSQL_AUTH_TOKEN` | _(leeg)_ | Handmatige fallback voor URL/token |
+| `DELETE_PASSWORD` | _(leeg)_ | Verwijder-wachtwoord; leeg = verwijderen uit |
+| `DISCORD_WEBHOOK_URL` | _(leeg)_ | Optioneel: Discord-meldingen |
+| `GUNICORN_WORKERS` | `2` | Aantal workers |
 
-## Database
-
-Tabel `counts` (SQLite-dialect). `AUTOINCREMENT` garandeert dat verwijderde
-ID's nooit hergebruikt worden, zodat de teller nooit terugloopt.
-
-| Kolom | Type |
-|---|---|
-| `id` | INTEGER PRIMARY KEY AUTOINCREMENT |
-| `message` | TEXT NOT NULL |
-| `date` | TEXT NOT NULL |
-| `time` | TEXT NOT NULL |
-| `client_ip` | TEXT NOT NULL |
+Tabel `counts` (SQLite-dialect, `AUTOINCREMENT` — de teller loopt nooit
+terug door een delete): `id`, `message`, `date`, `time`, `client_ip`.
 
 ## Kosten & kanttekeningen
 
 - $0.30 per **miljard** gelezen rijen, $0.30 per miljoen geschreven rijen,
-  $0.10/GB opslag per actieve regio; de database spint down bij inactiviteit.
-  Voor dit project: afgerond **$0/maand**. Tijdens de public preview is de
-  dienst helemaal gratis.
-- Bunny Database is **public preview**: geen SLA en de dienst kan nog
-  veranderen. Een periodieke export (bijv. `curl /api/counts > backup.json`)
-  is een prima vangnet voor dit project.
-- Writes gaan naar de primaire regio; reads komen uit de dichtstbijzijnde
-  replica. Voor een teller is die (milliseconden-)vertraging irrelevant.
+  $0.10/GB per actieve regio; spint down bij inactiviteit. Voor dit project
+  afgerond **$0/maand** (en gratis tijdens de public preview).
+- Public preview: geen SLA. Een periodieke export
+  (`curl /api/counts > backup.json`) is een prima vangnet.

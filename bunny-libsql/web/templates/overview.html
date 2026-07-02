@@ -55,11 +55,74 @@
         </div>
         </div>
     </div>
+
+    <!-- Wachtwoord-modal voor verwijderen. Bootstrap-styling, maar de paar
+         regels toon/verberg-JS staan hieronder zodat we geen bootstrap.js
+         hoeven mee te leveren. -->
+    <div class="modal" id="deleteModal" tabindex="-1" style="background: rgba(0,0,0,.5)" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Berichtje verwijderen</h5>
+            <button type="button" class="btn-close" onclick="verbergModal()" aria-label="Sluiten"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-2">Vul het verwijder-wachtwoord in. Daarna mag je 10 minuten lang vrij verwijderen.</p>
+            <input type="password" id="deletePassword" class="form-control" placeholder="Wachtwoord" autocomplete="current-password">
+            <p id="deleteError" class="text-danger mt-2 mb-0 d-none"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="verbergModal()">Annuleren</button>
+            <button type="button" class="btn btn-danger" id="deleteConfirm">Verwijder</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 <script>
-async function deleteCount(id) {
-    await fetch('/api/counts/' + id, { method: 'DELETE' });
-    location.reload();
+const modal = document.getElementById('deleteModal');
+const wachtwoordVeld = document.getElementById('deletePassword');
+const foutRegel = document.getElementById('deleteError');
+let teVerwijderenId = null;
+
+function toonModal() {
+    foutRegel.classList.add('d-none');
+    wachtwoordVeld.value = '';
+    modal.style.display = 'block';
+    modal.classList.add('show');
+    wachtwoordVeld.focus();
 }
+
+function verbergModal() {
+    modal.classList.remove('show');
+    modal.style.display = 'none';
+}
+
+async function verwijder(id, wachtwoord) {
+    const opties = { method: 'DELETE' };
+    if (wachtwoord) opties.headers = { 'X-Delete-Password': wachtwoord };
+    return fetch('/api/counts/' + id, opties);
+}
+
+// Verwijder-knop in de tabel: probeer direct (de sessie kan nog vertrouwd
+// zijn); vraag alleen om het wachtwoord als de server 401 teruggeeft.
+async function deleteCount(id) {
+    const res = await verwijder(id);
+    if (res.ok) return location.reload();
+    if (res.status === 401) { teVerwijderenId = id; toonModal(); return; }
+    alert((await res.json()).error);
+}
+
+document.getElementById('deleteConfirm').onclick = async () => {
+    const res = await verwijder(teVerwijderenId, wachtwoordVeld.value);
+    if (res.ok) return location.reload();
+    foutRegel.textContent = (await res.json()).error || 'Hmm, dat ging mis.';
+    foutRegel.classList.remove('d-none');
+};
+
+wachtwoordVeld.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('deleteConfirm').click();
+});
 </script>
 </body>
 </html>

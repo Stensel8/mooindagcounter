@@ -4,213 +4,78 @@ Mooindag! FastAPI-teller, draait op Bunny.net Magic Containers.
 
 ## Twee varianten
 
-Deze repo bevat twee complete, onafhankelijke deployment-varianten van dezelfde
-app. `web/app.py` (routes, teller-logica) en de templates zijn **identiek** in
-beide mappen; het enige codeverschil is de datalaag (`web/db.py`) en verder
-verschilt alleen de deployment.
+Twee complete deployment-varianten van dezelfde app. `web/app.py`, de
+templates en static zijn **byte-voor-byte identiek** (CI dwingt dit af);
+het enige codeverschil is de datalaag `web/db.py`.
 
 | | [`microservices/`](microservices/) | [`bunny-libsql/`](bunny-libsql/) |
 |---|---|---|
 | Database | MariaDB (zelf gehost) | [Bunny Database](https://bunny.net/database/) (managed, libSQL) |
 | Containers | web + db | alleen web |
-| Volumes/state | 1 volume voor MariaDB | geen |
-| Multi-region | web schaalt vrij; db op 1 plek | web schaalt vrij; reads uit replica's dichtbij |
-| Draait op | docker compose, Kubernetes, Bunny (2 apps) | Bunny Magic Containers + Bunny Database |
-| Kosten database | ~$4/maand (24/7 pod + anycast IP) | ~$0 (usage-based; gratis tijdens preview) |
-| Status | bewezen techniek | Bunny Database is public preview |
+| Draait op | docker compose, Kubernetes, Bunny (2 apps) | Bunny Magic Containers |
+| Kosten database | ~$4/maand | ~$0 (usage-based) |
 
-**Keuzehulp:** wil je zelf een database beheren en/of op Kubernetes draaien
-(leerzaam!), kies `microservices/`. Wil je nul beheer, de laagste kosten en
-wereldwijd snelle reads, kies `bunny-libsql/`.
+**Keuzehulp:** zelf een database willen beheren of op Kubernetes draaien
+(leerzaam!) → `microservices/`. Nul beheer en wereldwijd snelle reads →
+`bunny-libsql/`.
 
-### Waarom dit zo opgezet is
+**Waarom deze opzet:** een database-sidecar per pod betekent op Bunny één
+database per regio met elk een eigen volume — dus een andere teller per
+refresh, een lege teller na opschalen en InnoDB-crashes bij afschalen.
+De regel is simpel: **web-laag stateless en vrij schaalbaar, de database op
+precies 1 plek (of managed)**. Zie de README per variant voor het stappenplan.
 
-De oorspronkelijke deployment draaide web + MariaDB samen in één Magic
-Containers app. Bunny start dan per regio een pod met beide containers en
-**elke pod krijgt een eigen volume**: Amsterdam en Tokyo hadden dus elk hun
-eigen database (andere teller per refresh), opschalen gaf een nieuwe pod met
-een lege database (teller op 0) en afschalen kon InnoDB-crash-recovery
-veroorzaken. [Bunny's documentatie](https://docs.bunny.net/magic-containers/persistent-volumes)
-adviseert voor databases dan ook *"run with 1 replica per volume"*. De regel
-die elk containerplatform hanteert:
-
-> **De web-laag is stateless en mag onbeperkt schalen; de database draait op
-> precies 1 plek (of is een managed dienst) en iedereen verbindt daarmee.**
-
-Beide varianten volgen deze regel, elk op hun eigen manier. Zie de README in
-elke map voor het bijbehorende stappenplan.
-
-### Welke pod bediende mij?
-
-Elke response bevat een `X-Served-By` header (regio + pod-ID op Bunny via de
-automatisch geinjecteerde `BUNNYNET_MC_REGION`/`BUNNYNET_MC_PODID` variabelen,
-hostname elders) en `/healthz` geeft hem ook terug als `served_by`. Zo
-controleer je met `curl -sI https://mooindagcounter.nl/` of verschillende
-regio's echt dezelfde database zien.
+Elke response bevat een `X-Served-By` header (regio + pod-ID) zodat je kunt
+zien welke pod je bediende — handig om te checken dat alle regio's dezelfde
+database zien.
 
 ## Routes
 
-Identiek voor beide varianten. HTML-responses sturen `Cache-Control: no-store`
-zodat CDN's en browsers niets cachen.
+Identiek voor beide varianten. HTML gaat uit met `Cache-Control: no-store`
+zodat CDN's en browsers nooit een oude tellerstand tonen.
 
----
+| Route | Wat |
+|---|---|
+| `GET /` | Tellerstand + invoerformulier |
+| `POST /increment` | Nieuw bericht (max 300 tekens, uniek); redirect naar `/` |
+| `GET /overview` | Tabel met alle counts, met verwijderknop |
+| `GET /api/counts` | Alle counts als JSON, nieuwste eerst |
+| `GET /api/counts/{id}` | Eén count als JSON |
+| `DELETE /api/counts/{id}` | Verwijdert een count (wachtwoord vereist, zie hieronder) |
+| `GET /robots.txt` | Robots-regels |
 
-### `GET /` — Teller pagina
+## Verwijderen (wachtwoord)
 
-Toont de huidige tellerstand en het invoerformulier.
+Verwijderen vereist een wachtwoord dat **alleen via een secret** wordt
+ingesteld: `DELETE_PASSWORD`. Zonder die variabele staat verwijderen uit.
 
-<details>
-<summary>Voorbeeld</summary>
-
-```bash
-curl https://mooindagcounter.nl/
-```
-
-</details>
-
----
-
-### `POST /increment` — Nieuwe count toevoegen
-
-Formulierveld `message` is verplicht (max 300 tekens, uniek). Redirect naar `/` na opslaan.
-
-<details>
-<summary>Voorbeeld</summary>
+De verwijderknop op `/overview` opent een wachtwoord-modal; de API verwacht
+het wachtwoord in de `X-Delete-Password` header. Na één juist wachtwoord is
+de browser **10 minuten vertrouwd** via een HMAC-getekende, HttpOnly cookie
+— daarna vraagt de modal opnieuw. Het wachtwoord zelf wordt nergens
+opgeslagen of gelogd.
 
 ```bash
-curl -X POST https://mooindagcounter.nl/increment \
-  -d "message=mooie+dag"
+curl -X DELETE https://mooindagcounter.nl/api/counts/15 \
+  -H "X-Delete-Password: $DELETE_PASSWORD"
 ```
-
-</details>
-
----
-
-### `GET /overview` — Overzicht (web UI)
-
-Tabel van alle counts, nieuwste eerst, met verwijderknop per rij.
-
-<details>
-<summary>Voorbeeld</summary>
-
-```bash
-curl https://mooindagcounter.nl/overview
-```
-
-</details>
-
----
-
-### `GET /api/counts` — Alle counts (JSON)
-
-Geeft alle counts terug als JSON-array, nieuwste eerst.
-
-<details>
-<summary>Voorbeeld</summary>
-
-```bash
-curl https://mooindagcounter.nl/api/counts
-```
-
-Respons:
-```json
-[
-  { "id": 15, "message": "kanusje", "date": "2026-05-14" },
-  { "id": 14, "message": "kanus",   "date": "2026-05-14" }
-]
-```
-
-</details>
-
----
-
-### `GET /api/counts/{id}` — Specifieke count (JSON)
-
-<details>
-<summary>Voorbeeld</summary>
-
-```bash
-curl https://mooindagcounter.nl/api/counts/15
-```
-
-Respons:
-```json
-{ "id": 15, "message": "kanusje", "date": "2026-05-14", "time": "19:58:42" }
-```
-
-</details>
-
----
-
-### `DELETE /api/counts/{id}` — Count verwijderen
-
-Verwijdert een count. De web UI (overzichtpagina) gebruikt ook dit endpoint via een `fetch`-aanroep.
-
-<details>
-<summary>Voorbeeld</summary>
-
-```bash
-curl -X DELETE https://mooindagcounter.nl/api/counts/15
-```
-
-Respons:
-```json
-{ "message": "Record 15 deleted" }
-```
-
-</details>
-
----
-
-### `GET /healthz` — Statuscheck
-
-Geeft `{"status": "ok"}` als de database bereikbaar is, anders HTTP 503.
-
-<details>
-<summary>Voorbeeld</summary>
-
-```bash
-curl https://mooindagcounter.nl/healthz
-```
-
-Respons:
-```json
-{ "status": "ok", "served_by": "DE-a1b2c3" }
-```
-
-</details>
-
----
-
-### `GET /robots.txt`
-
-Serveert `static/robots.txt` op het root-pad.
-
----
 
 ## Deployment
 
-GitHub Actions bouwt en pusht drie images naar GHCR, onder de namespace van
-de **repo-eigenaar** (`ghcr.io/<owner>/…`). Forks publiceren dus automatisch
-naar hun eigen namespace, zonder aanpassingen:
+GitHub Actions pusht drie images naar GHCR onder de namespace van de
+**repo-eigenaar** (`ghcr.io/<owner>/…`) — forks publiceren dus automatisch
+naar hun eigen namespace:
 
-| Image | Bron | Variant |
-|---|---|---|
-| `ghcr.io/<owner>/mooindag-web` | `microservices/web` | microservices |
-| `ghcr.io/<owner>/mooindag-db` | `microservices/db` | microservices |
-| `ghcr.io/<owner>/mooindag-libsql` | `bunny-libsql/web` | bunny-libsql |
+| Image | Bron |
+|---|---|
+| `mooindag-web` | `microservices/web` |
+| `mooindag-db` | `microservices/db` |
+| `mooindag-libsql` | `bunny-libsql/web` |
 
-Goed om te weten:
-
-- **Push naar `main`** publiceert `latest` + een `sha-…` tag; via **Actions →
-  Build & Push → Run workflow** kun je ook vanaf een branch bouwen (alleen
-  `sha-…`, geen `latest`).
-- **Eerste keer publiceren vanaf een fork?** Nieuwe GHCR-packages staan
-  standaard op *private*. Bunny's "GitHub Public" registry kan ze dan niet
-  pullen: zet elk package op public via GitHub → Packages →
-  *Package settings* → *Change visibility*.
-- De Kubernetes-manifests wijzen naar `ghcr.io/stensel8/…`; draai je vanuit
-  een andere namespace, gebruik dan de `images:`-override in
+- Push naar `main` → `latest` + `sha-…`; via *Actions → Build & Push → Run
+  workflow* bouw je vanaf een branch (alleen `sha-…`).
+- **Nieuwe GHCR-packages staan standaard op private**; zet ze op public
+  (GitHub → Packages → Package settings) anders kan Bunny's "GitHub Public"
+  registry ze niet pullen.
+- Ander namespace op Kubernetes? Gebruik de `images:`-override in
   `microservices/k8s/kustomization.yaml`.
-
-De app draait als Gunicorn+UvicornWorker (ASGI), HTTP/2 en HTTP/3 lopen via Bunny.net.

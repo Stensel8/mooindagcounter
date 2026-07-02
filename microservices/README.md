@@ -1,101 +1,64 @@
 # Microservices-variant (web + MariaDB)
 
-FastAPI-teller met een zelf gehoste MariaDB. Twee containers, klassieke
-microservices-architectuur: een stateless web-laag die vrij mag schalen en
-**precies één** database-instantie met een volume.
+Stateless web-laag die vrij mag schalen, plus **precies één**
+MariaDB-instantie met een volume.
 
 ## Lokaal draaien
 
-Kopieer het env-bestand en vul je waarden in:
-
 ```bash
-cp web/.env.example .env
+cp web/.env.example .env   # vul je waarden in
+docker compose up --build  # app op http://localhost:8080
 ```
-
-Start de app vanuit deze map:
-
-```bash
-docker compose up --build
-```
-
-App draait op `http://localhost:8080`.
 
 ## Omgevingsvariabelen
 
 | Variabele | Standaard | Omschrijving |
 |---|---|---|
-| `DB_HOST` | `localhost` | MariaDB hostnaam |
-| `DB_PORT` | `3306` | MariaDB poort |
-| `DB_USER` | `mooindagcounter` | DB gebruiker |
-| `DB_PASSWORD` | _(verplicht)_ | DB wachtwoord |
+| `DB_HOST` / `DB_PORT` | `localhost` / `3306` | MariaDB adres |
+| `DB_USER` / `DB_PASSWORD` | `mooindagcounter` / _(verplicht)_ | DB-login |
 | `DB_NAME` | `mooindagcounter` | Databasenaam |
-| `DB_SSL` | `false` | TLS naar de database; zet aan zodra de DB niet op localhost draait |
-| `DB_SSL_VERIFY` | `true` | Certificaatcontrole; `false` bij self-signed certificaten |
-| `DB_SSL_CA` | _(leeg)_ | Pad naar CA-bundel (vereist door sommige managed diensten) |
-| `DB_CONNECT_TIMEOUT` | `10` | Verbindingstimeout in seconden |
-| `DB_POOL_RECYCLE` | `280` | Vernieuw idle poolverbindingen na dit aantal seconden |
-| `DISCORD_WEBHOOK_URL` | _(leeg)_ | Optioneel: Discord meldingen |
-| `GUNICORN_WORKERS` | `2` | Aantal Gunicorn+Uvicorn workers |
+| `DB_SSL` | `false` | TLS; aanzetten zodra de DB niet op localhost draait |
+| `DB_SSL_VERIFY` | `true` | `false` bij self-signed certificaten |
+| `DB_SSL_CA` | _(leeg)_ | Eigen CA-bundel (sommige managed diensten) |
+| `DB_CONNECT_TIMEOUT` | `10` | Verbindingstimeout (s) |
+| `DB_POOL_RECYCLE` | `280` | Ververs idle poolverbindingen (s) |
+| `DELETE_PASSWORD` | _(leeg)_ | Verwijder-wachtwoord; leeg = verwijderen uit |
+| `DISCORD_WEBHOOK_URL` | _(leeg)_ | Optioneel: Discord-meldingen |
+| `GUNICORN_WORKERS` | `2` | Aantal workers |
 
-## Database
-
-Tabel `counts`. De web-app maakt de tabel zelf aan als die nog niet bestaat
-(`CREATE TABLE IF NOT EXISTS` bij het opzetten van de verbindingspool), zodat
-elke lege MySQL/MariaDB-database werkt. Het `mooindag-db` image bevat
-daarnaast `db/create_db.sql` als init-script.
-
-| Kolom | Type |
-|---|---|
-| `id` | INT AUTO_INCREMENT PRIMARY KEY |
-| `message` | TEXT NOT NULL |
-| `date` | TEXT NOT NULL |
-| `time` | TEXT NOT NULL |
-| `client_ip` | TEXT NOT NULL |
+De app maakt de `counts`-tabel zelf aan (`id`, `message`, `date`, `time`,
+`client_ip`); elke lege MySQL/MariaDB-database werkt. Het `mooindag-db`
+image bevat daarnaast `db/create_db.sql` als init-script.
 
 ## Deployment op Bunny.net (twee Magic Container apps)
 
 Draai web en database **nooit samen in één multi-region app** (zie de
-[hoofd-README](../README.md) voor waarom). Splits in twee apps:
+[hoofd-README](../README.md)):
 
-1. Maak een **nieuwe Magic Containers app** (bijv. `mooindag-db`) met
-   alleen het `mooindag-db` image, het `db_data` volume op
-   `/var/lib/mysql`, **1 regio, autoscaling uit (vast 1 pod)** en een
-   endpoint dat poort 3306 exposet.
-2. Verwijder in de web-app de db-container én het volume, en wijs de
-   web-container naar de nieuwe database: `DB_HOST=<endpoint-van-de-db-app>`,
-   `DB_SSL=true`, `DB_SSL_VERIFY=false` (MariaDB genereert standaard een
-   self-signed certificaat; het verkeer is dan versleuteld). Kies een **sterk**
-   `DB_PASSWORD` — de databasepoort is publiek bereikbaar.
-3. De web-app mag nu vrij schalen over alle regio's: elke pod praat met
-   dezelfde database, dus iedereen ziet dezelfde teller.
+1. Nieuwe app met alleen het `mooindag-db` image: 1 regio, autoscaling
+   uit (vast 1 pod), volume op `/var/lib/mysql`, endpoint op poort 3306.
+2. Web-app: db-container en volume weg; `DB_HOST=<db-endpoint>`,
+   `DB_SSL=true`, `DB_SSL_VERIFY=false`, een **sterk** `DB_PASSWORD`
+   (de poort is publiek).
+3. De web-app mag nu vrij schalen over alle regio's.
 
-*Let op:* schrijfacties vanuit verre regio's krijgen wat extra latency
-(Tokyo → Amsterdam is ~250 ms) en Bunny-volumes hebben geen automatische
-backups — draai af en toe een `mariadb-dump`, of overweeg de
-[`bunny-libsql`](../bunny-libsql/) variant.
+*Let op:* Bunny-volumes hebben geen backups — draai af en toe een
+`mariadb-dump`, of kies de [`bunny-libsql`](../bunny-libsql/) variant.
 
 ## Kubernetes
 
-In `k8s/` staan manifests die dezelfde architectuur afdwingen op elk
-Kubernetes-cluster (k3s, minikube, managed):
-
-- **`web-deployment.yaml`** — stateless [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/),
-  3 replicas, readiness-probe op `/healthz`, read-only rootfs;
-- **`db-statefulset.yaml`** — [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/)
-  met exact 1 replica en een PersistentVolumeClaim;
-- **`db-service.yaml` / `web-service.yaml` / `web-ingress.yaml`** — interne
-  DNS (`DB_HOST=db`), loadbalancing en externe toegang.
+`k8s/` bevat dezelfde architectuur als manifests: een stateless web-
+[Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+(3 replicas, probes, read-only rootfs) en een MariaDB-
+[StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/)
+met exact 1 replica en een PersistentVolumeClaim.
 
 ```bash
-# 1. Secret met wachtwoorden aanmaken (eenmalig, zie k8s/secret.example.yaml)
 kubectl create namespace mooindagcounter
 kubectl -n mooindagcounter create secret generic mooindag-db \
   --from-literal=MARIADB_ROOT_PASSWORD='...' \
   --from-literal=DB_PASSWORD='...'
 
-# 2. Alles uitrollen (vanuit de root van de repo)
-kubectl apply -k microservices/k8s/
-
-# 3. Web-laag schalen (de database schaalt bewust niet mee)
+kubectl apply -k microservices/k8s/            # alles uitrollen
 kubectl -n mooindagcounter scale deployment/web --replicas=5
 ```
