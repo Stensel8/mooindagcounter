@@ -24,7 +24,7 @@ services:
       - /tmp
 
   db:
-    image: ghcr.io/tursodatabase/libsql-server:latest
+    image: ghcr.io/tursodatabase/libsql-server:latest@sha256:07d5da358f37f7f327cc33c1cb5278e7892e04225f011a65a76049372a308982
     restart: unless-stopped
     volumes:
       - libsql_data:/var/lib/sqld
