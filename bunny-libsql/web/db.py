@@ -78,7 +78,9 @@ def _auth_headers() -> dict:
     Leeg bij een lokale sqld zonder auth.
     """
     token = (
-        os.getenv("LIBSQL_AUTH_TOKEN") or os.getenv("BUNNY_DATABASE_AUTH_TOKEN") or ""
+        os.getenv("LIBSQL_AUTH_TOKEN") 
+        or os.getenv("BUNNY_DATABASE_AUTH_TOKEN") 
+        or ""
     ).strip()
     
     # Debug: log of token aanwezig is

@@ -24,8 +24,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 import db
 
-# Lokaal: laad .env. In Bunny Magic Containers krijgen we env vars via Docker, dus skip.
-if not os.getenv("BUNNYNET_MC_REGION"):
+# Laad .env alleen als het bestand lokaal bestaat (voor development)
+# In productie (Bunny) komen env vars via Docker, dus .env is niet nodig
+if os.path.exists("./.env"):
     load_dotenv("./.env")
 
 logger = logging.getLogger("uvicorn.error")
