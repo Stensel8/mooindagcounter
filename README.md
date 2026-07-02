@@ -5,8 +5,9 @@ Mooindag! FastAPI-teller, draait op Bunny.net Magic Containers.
 ## Twee varianten
 
 Deze repo bevat twee complete, onafhankelijke deployment-varianten van dezelfde
-app. De web-app (routes, templates, gedrag) is identiek; alleen de datalaag en
-de deployment verschillen.
+app. `web/app.py` (routes, teller-logica) en de templates zijn **identiek** in
+beide mappen; het enige codeverschil is de datalaag (`web/db.py`) en verder
+verschilt alleen de deployment.
 
 | | [`microservices/`](microservices/) | [`bunny-libsql/`](bunny-libsql/) |
 |---|---|---|

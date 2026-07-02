@@ -11,8 +11,10 @@ Bunny Database is gebouwd op libSQL (een SQLite-fork) en spreekt het standaard
 *Hrana over HTTP* protocol: statements gaan als JSON naar
 `POST {LIBSQL_URL}/v2/pipeline` met een Bearer-token — precies wat Bunny's
 eigen client-libraries ook doen. Er is geen officiële Python SDK, dus
-`web/app.py` spreekt dat protocol direct via `httpx` (~80 regels, geen extra
-dependencies).
+`web/db.py` spreekt dat protocol direct via `httpx` (geen extra dependencies).
+
+`web/app.py` (routes, teller-logica) is identiek aan de microservices-variant;
+alleen de datalaag (`web/db.py`) verschilt tussen de twee.
 
 ## Deployment op Bunny.net
 
@@ -28,20 +30,8 @@ dependencies).
 4. Zet multi-region en autoscaling zo ruim als je wilt — de app is volledig
    stateless, dus elke pod in elke regio ziet dezelfde teller.
 
-De app maakt de `counts`-tabel zelf aan bij de eerste start.
-
-## Data migreren vanuit MariaDB
-
-`migrate.py` kopieert alle rijen inclusief hun oorspronkelijke ID (de
-tellerstand blijft dus exact gelijk) en is veilig om opnieuw te draaien:
-
-```bash
-pip install pymysql httpx
-
-DB_HOST=<mariadb-host> DB_USER=mooindagcounter DB_PASSWORD=... \
-LIBSQL_URL=libsql://<id>.lite.bunnydb.net LIBSQL_AUTH_TOKEN=<token> \
-python3 migrate.py
-```
+De app maakt de `counts`-tabel zelf aan bij de eerste start — een verse,
+lege database is genoeg.
 
 ## Lokaal draaien
 
