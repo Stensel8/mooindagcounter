@@ -1,0 +1,83 @@
+# De database draait als StatefulSet met PRECIES 1 replica.
+#
+# Dit is de gouden regel voor stateful services: MariaDB/InnoDB verwacht een
+# enkele schrijfbare disk. Meerdere replicas betekent meerdere losse databases
+# (elke pod krijgt een eigen volume) en dus een inconsistente teller — precies
+# het probleem dat ontstaat als je een database-sidecar per web-pod meeschaalt.
+# Schaal de web-laag (Deployment) horizontaal, nooit deze StatefulSet.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+spec:
+  serviceName: db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mooindagcounter-db
+  template:
+    metadata:
+      labels:
+        app: mooindagcounter-db
+    spec:
+      containers:
+        - name: mariadb
+          image: ghcr.io/stensel8/mooindagcounter-db:latest
+          ports:
+            - containerPort: 3306
+              name: mysql
+          env:
+            - name: MARIADB_DATABASE
+              value: mooindagcounter
+            - name: MARIADB_USER
+              value: mooindagcounter
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mooindagcounter-db
+                  key: MARIADB_ROOT_PASSWORD
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mooindagcounter-db
+                  key: DB_PASSWORD
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/mysql
+          # Zelfde healthcheck als in docker-compose: pas verkeer sturen als
+          # InnoDB volledig is geinitialiseerd (voorkomt fouten tijdens
+          # crash-recovery na een onverwachte herstart).
+          readinessProbe:
+            exec:
+              command: ["healthcheck.sh", "--connect", "--innodb_initialized"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          # Liveness ruim afstellen: crash-recovery van InnoDB mag minuten
+          # duren; te vroeg herstarten maakt corruptie alleen maar erger.
+          livenessProbe:
+            exec:
+              command: ["healthcheck.sh", "--connect", "--innodb_initialized"]
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      # Geef MariaDB tijd om netjes af te sluiten (buffers flushen); een
+      # harde kill tijdens een write veroorzaakt InnoDB crash-recovery.
+      terminationGracePeriodSeconds: 60
+  # Elke replica krijgt automatisch een eigen PersistentVolumeClaim.
+  # Met replicas=1 is er dus 1 volume dat herstarts en updates overleeft.
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

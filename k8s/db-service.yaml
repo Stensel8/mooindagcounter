@@ -1,0 +1,15 @@
+# Interne DNS-naam voor de database: web-pods verbinden met DB_HOST=db.
+# Headless (clusterIP: None) omdat een StatefulSet met 1 replica geen
+# loadbalancing nodig heeft; DNS wijst direct naar de database-pod.
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  clusterIP: None
+  selector:
+    app: mooindagcounter-db
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql

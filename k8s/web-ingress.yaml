@@ -1,0 +1,19 @@
+# HTTP-toegang van buitenaf. Vereist een ingress-controller in het cluster
+# (bijv. ingress-nginx of Traefik). Pas de host aan naar je eigen domein;
+# voor TLS kan cert-manager een Let's Encrypt-certificaat aanvragen.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+spec:
+  rules:
+    - host: mooindagcounter.nl
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http

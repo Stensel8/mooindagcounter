@@ -1,0 +1,6 @@
+# Eigen namespace zodat alles van mooindagcounter bij elkaar staat
+# en met 1 commando op te ruimen is: kubectl delete namespace mooindagcounter
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mooindagcounter

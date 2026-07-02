@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import ssl
 from contextlib import asynccontextmanager
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -26,6 +27,14 @@ AMS = ZoneInfo(os.getenv("TZ", "Europe/Amsterdam"))
 # Maximale berichtlengte om de database te beschermen tegen oversized invoer.
 MAX_MESSAGE_LENGTH = 300
 
+# Identificatie van deze instantie: regio + pod-ID op Bunny.net Magic Containers
+# (via de automatisch geinjecteerde BUNNYNET_MC_* variabelen), hostname elders.
+# Wordt als X-Served-By header meegestuurd zodat zichtbaar is welke pod een
+# request afhandelde — onmisbaar bij het debuggen van multi-region deployments.
+SERVED_BY = "-".join(
+    filter(None, (os.getenv("BUNNYNET_MC_REGION"), os.getenv("BUNNYNET_MC_PODID")))
+) or os.getenv("HOSTNAME", "local")
+
 # Globale verbindingspool; gedeeld tussen alle requests.
 _pool: aiomysql.Pool | None = None
 _pool_lock = asyncio.Lock()
@@ -36,15 +45,68 @@ _background_tasks: set[asyncio.Task] = set()
 
 # --- Levenscyclus van de applicatie ---
 
+# Schema wordt door de app zelf aangemaakt als het nog niet bestaat.
+# Hierdoor werkt de app tegen elke lege MySQL/MariaDB-database (managed
+# database of los gehoste MariaDB) zonder het aparte db-image met init-script.
+SCHEMA_SQL = """\
+CREATE TABLE IF NOT EXISTS counts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    message TEXT NOT NULL,
+    date TEXT NOT NULL,
+    time TEXT NOT NULL,
+    client_ip TEXT NOT NULL
+)"""
+
+
+def _env_flag(name: str, default: str) -> bool:
+    """Leest een boolean omgevingsvariabele ('true', '1', 'yes', 'on')."""
+    return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _build_ssl_context() -> ssl.SSLContext | None:
+    """
+    Bouwt een TLS-context voor de databaseverbinding (DB_SSL=true).
+    Nodig zodra de database niet meer als sidecar op localhost draait maar
+    remote: het verkeer gaat dan over het publieke internet en moet
+    versleuteld zijn. Zet DB_SSL_VERIFY=false bij self-signed certificaten
+    (zoals MariaDB standaard zelf genereert): het verkeer blijft versleuteld,
+    alleen de servercertificaat-controle vervalt. Met DB_SSL_CA kan een eigen
+    CA-bundel worden opgegeven (vereist door o.a. managed MySQL-diensten).
+    """
+    if not _env_flag("DB_SSL", "false"):
+        return None
+    context = ssl.create_default_context(cafile=os.getenv("DB_SSL_CA") or None)
+    if not _env_flag("DB_SSL_VERIFY", "true"):
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+    return context
+
+
+async def _ensure_schema(pool: aiomysql.Pool) -> None:
+    """Maakt de counts-tabel aan als die nog niet bestaat."""
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(SCHEMA_SQL)
+    except Exception as e:
+        logger.warning("Schema-controle mislukt: %s", e)
+
+
 async def _create_pool() -> aiomysql.Pool | None:
     """Maakt de verbindingspool aan. Geeft None terug als de DB niet bereikbaar is."""
     try:
-        return await aiomysql.create_pool(
+        pool = await aiomysql.create_pool(
             host=os.getenv("DB_HOST", "localhost"),
             port=int(os.getenv("DB_PORT", "3306")),
             user=os.getenv("DB_USER", "root"),
             password=os.getenv("DB_PASSWORD", ""),
             db=os.getenv("DB_NAME", "mooindagcounter"),
+            ssl=_build_ssl_context(),
+            connect_timeout=int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
+            # Vernieuw idle verbindingen periodiek: firewalls en NAT tussen de
+            # webcontainer en een remote database sluiten stille verbindingen
+            # geruisloos af, wat anders sporadische query-fouten geeft.
+            pool_recycle=int(os.getenv("DB_POOL_RECYCLE", "280")),
             autocommit=True,
             cursorclass=aiomysql.DictCursor,
             minsize=2,
@@ -53,6 +115,8 @@ async def _create_pool() -> aiomysql.Pool | None:
     except Exception as e:
         logger.warning("DB-pool aanmaken mislukt: %s", e)
         return None
+    await _ensure_schema(pool)
+    return pool
 
 
 async def get_pool() -> aiomysql.Pool | None:
@@ -86,23 +150,27 @@ templates = Jinja2Templates(directory="templates")
 # Serveer bestanden uit de static/-map op het /static/-pad (CSS, afbeeldingen, favicon).
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# --- Cache-middleware ---
+# --- Response-middleware ---
 
-class NoCacheHTMLMiddleware(BaseHTTPMiddleware):
+class ResponseHeadersMiddleware(BaseHTTPMiddleware):
     """
-    Voegt 'Cache-Control: no-store' toe aan elke HTML-response.
-    Zonder deze header slaat Bunny.net (en andere CDN's/browsers) pagina's op,
-    waardoor de teller een verouderde stand toont na een nieuwe invoer.
-    JSON- en statische bestanden worden niet geraakt door deze middleware.
+    Voegt standaard headers toe aan elke response:
+    - 'Cache-Control: no-store' op HTML-responses. Zonder deze header slaat
+      Bunny.net (en andere CDN's/browsers) pagina's op, waardoor de teller een
+      verouderde stand toont na een nieuwe invoer. JSON- en statische
+      bestanden worden hier niet door geraakt.
+    - 'X-Served-By' op alle responses: welke regio/pod dit request afhandelde.
+      Zo is direct te controleren of alle regio's dezelfde database zien.
     """
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         if "text/html" in response.headers.get("content-type", ""):
             response.headers["cache-control"] = "no-store"
+        response.headers["x-served-by"] = SERVED_BY
         return response
 
 
-app.add_middleware(NoCacheHTMLMiddleware)
+app.add_middleware(ResponseHeadersMiddleware)
 
 
 # --- Database hulpfuncties --- Mooindag!
@@ -117,6 +185,10 @@ async def db_query(sql: str, params: tuple = ()) -> list | None:
         return None
     try:
         async with pool.acquire() as conn:
+            # Herstelt een stilletjes verbroken verbinding (reconnect=True is
+            # standaard) voordat de query draait; voorkomt een eenmalige 503
+            # na een idle-periode of een herstart van de database.
+            await conn.ping()
             async with conn.cursor() as cur:
                 await cur.execute(sql, params)
                 return await cur.fetchall()
@@ -132,6 +204,7 @@ async def db_execute(sql: str, params: tuple = ()) -> bool:
         return False
     try:
         async with pool.acquire() as conn:
+            await conn.ping()
             async with conn.cursor() as cur:
                 await cur.execute(sql, params)
         return True
@@ -147,6 +220,7 @@ async def db_insert(sql: str, params: tuple = ()) -> int | None:
         return None
     try:
         async with pool.acquire() as conn:
+            await conn.ping()
             async with conn.cursor() as cur:
                 await cur.execute(sql, params)
                 return cur.lastrowid
@@ -334,8 +408,8 @@ async def healthz():
     """
     rows = await db_query("SELECT 1")
     if rows is not None:
-        return JSONResponse({"status": "ok"})
-    return JSONResponse({"status": "db_unavailable"}, status_code=503)
+        return JSONResponse({"status": "ok", "served_by": SERVED_BY})
+    return JSONResponse({"status": "db_unavailable", "served_by": SERVED_BY}, status_code=503)
 
 
 # --- JSON API --- Mooindag!

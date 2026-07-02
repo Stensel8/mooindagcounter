@@ -1,0 +1,12 @@
+# Interne loadbalancer over alle web-pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: mooindagcounter-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

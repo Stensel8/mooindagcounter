@@ -1,0 +1,73 @@
+# De web-laag is stateless en mag daarom vrij horizontaal schalen:
+# alle replicas praten met dezelfde database (Service "db"), dus elke
+# bezoeker ziet dezelfde teller, ongeacht welke pod het request afhandelt.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mooindagcounter-web
+  template:
+    metadata:
+      labels:
+        app: mooindagcounter-web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/stensel8/mooindagcounter-web:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: DB_HOST
+              value: db
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_NAME
+              value: mooindagcounter
+            - name: DB_USER
+              value: mooindagcounter
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mooindagcounter-db
+                  key: DB_PASSWORD
+            - name: GUNICORN_WORKERS
+              value: "2"
+          # Readiness op /healthz: een pod die de database niet kan bereiken
+          # krijgt geen verkeer meer, maar blijft wel draaien.
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          # Liveness bewust NIET op /healthz: die geeft 503 als de database
+          # plat ligt, en dan zou Kubernetes gezonde web-pods in een
+          # herstart-loop trekken terwijl het probleem bij de database ligt.
+          # TCP-check volstaat: leeft het gunicorn-proces nog?
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          # Zelfde hardening als in docker-compose: read-only rootfs
+          # met een schrijfbare tmpfs voor gunicorn.
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

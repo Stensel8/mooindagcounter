@@ -3,6 +3,9 @@ banned_words.txt
 *.backup
 *.bak
 
+# Kubernetes secret met echte wachtwoorden (zie k8s/secret.example.yaml)
+k8s/secret.yaml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

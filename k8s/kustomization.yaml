@@ -1,0 +1,16 @@
+# Alles in 1 keer uitrollen:
+#
+#   1. Maak eerst het secret aan (zie secret.example.yaml)
+#   2. kubectl apply -k k8s/
+#
+# Het secret staat bewust niet in deze lijst: wachtwoorden horen niet in git.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mooindagcounter
+resources:
+  - namespace.yaml
+  - db-service.yaml
+  - db-statefulset.yaml
+  - web-deployment.yaml
+  - web-service.yaml
+  - web-ingress.yaml
