@@ -21,12 +21,14 @@ alleen de datalaag (`web/db.py`) verschilt tussen de twee.
 1. **Maak een database aan** in het [Bunny dashboard](https://dash.bunny.net)
    (Database → Add Database). Kies als primaire regio waar je meeste bezoekers
    zitten (bijv. Amsterdam) en voeg replica-regio's toe waar je app draait.
-2. Kopieer de **URL** (`libsql://<id>.lite.bunnydb.net`) en maak een
-   **access token** aan (Database → Connect).
-3. Pas je Magic Containers app aan: **alleen** het `mooindagcounter-libsql`
-   image (verwijder de db-container en het volume) met deze env-variabelen:
-   - `LIBSQL_URL=libsql://<id>.lite.bunnydb.net`
-   - `LIBSQL_AUTH_TOKEN=<token>`
+2. Klik op de connect-pagina op **"Add Secrets to Magic Container App"** en
+   kies je app + web-container. Bunny injecteert dan `BUNNY_DATABASE_URL` en
+   `BUNNY_DATABASE_AUTH_TOKEN` — de app leest die namen direct. (Handmatig kan
+   ook, via `LIBSQL_URL` + `LIBSQL_AUTH_TOKEN`; het READ_ONLY-token wordt niet
+   gebruikt, want de app schrijft ook.)
+3. Pas je Magic Containers app aan: wissel het image van de web-container naar
+   `mooindag-libsql` en **verwijder de db-container en het volume** —
+   die zijn niet meer nodig. De oude `DB_*` variabelen mogen ook weg.
 4. Zet multi-region en autoscaling zo ruim als je wilt — de app is volledig
    stateless, dus elke pod in elke regio ziet dezelfde teller.
 
@@ -52,6 +54,8 @@ App draait op `http://localhost:8080`.
 |---|---|---|
 | `LIBSQL_URL` | `http://localhost:8080` | Database-URL (`libsql://…` van Bunny of `http://…` lokaal) |
 | `LIBSQL_AUTH_TOKEN` | _(leeg)_ | Access token uit het Bunny dashboard; leeg bij lokale sqld |
+| `BUNNY_DATABASE_URL` | _(leeg)_ | Alternatief voor `LIBSQL_URL`; wordt automatisch gezet door Bunny's "Add Secrets" knop |
+| `BUNNY_DATABASE_AUTH_TOKEN` | _(leeg)_ | Alternatief voor `LIBSQL_AUTH_TOKEN`; idem |
 | `DISCORD_WEBHOOK_URL` | _(leeg)_ | Optioneel: Discord meldingen |
 | `GUNICORN_WORKERS` | `2` | Aantal Gunicorn+Uvicorn workers |
 
