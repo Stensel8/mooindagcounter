@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 27.5.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 7000 4000" style="enable-background:new 0 0 7000 4000;" xml:space="preserve">
+<g>
+	
+		<linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="2661.3618" y1="1332.8505" x2="8148.9961" y2="4880.8413" gradientTransform="matrix(0.971 0 0 -0.971 0.1492 3886.1978)">
+		<stop  offset="0" style="stop-color:#000000"/>
+		<stop  offset="1" style="stop-color:#057A5F"/>
+	</linearGradient>
+	<rect style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#SVGID_1_);" width="7000" height="3999.962"/>
+	
+		<linearGradient id="SVGID_00000132065131051920831020000006493899551449265299_" gradientUnits="userSpaceOnUse" x1="2775.814" y1="887.1074" x2="4593.9546" y2="3203.053" gradientTransform="matrix(0.971 0 0 -0.971 0.1492 3886.1978)">
+		<stop  offset="0" style="stop-color:#000000"/>
+		<stop  offset="1" style="stop-color:#057A5F"/>
+	</linearGradient>
+	
+		<polygon style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#SVGID_00000132065131051920831020000006493899551449265299_);" points="
+		0,0 2607.071,2729.535 7000,4000 	"/>
+	
+		<linearGradient id="SVGID_00000165916015430921359140000016487575767060708795_" gradientUnits="userSpaceOnUse" x1="1292.3296" y1="1267.7134" x2="2604.1216" y2="2579.5054" gradientTransform="matrix(0.971 0 0 -0.971 0.1492 3886.1978)">
+		<stop  offset="0" style="stop-color:#000000"/>
+		<stop  offset="1" style="stop-color:#057A5F"/>
+	</linearGradient>
+	
+		<polygon style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#SVGID_00000165916015430921359140000016487575767060708795_);" points="
+		2607.071,2729.535 0,0 961.631,2296.211 3820.499,4000 	"/>
+	
+		<linearGradient id="SVGID_00000111151035465713257410000005116039870660485285_" gradientUnits="userSpaceOnUse" x1="3409.4414" y1="-575.6168" x2="5439.6162" y2="893.6229" gradientTransform="matrix(0.971 0 0 -0.971 0.1492 3886.1978)">
+		<stop  offset="0" style="stop-color:#000000"/>
+		<stop  offset="1" style="stop-color:#057A5F"/>
+	</linearGradient>
+	
+		<polygon style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#SVGID_00000111151035465713257410000005116039870660485285_);" points="
+		7000,4000 2607.071,2729.535 3820.499,4000 	"/>
+	
+		<linearGradient id="SVGID_00000075155803225568168680000016880480497309043603_" gradientUnits="userSpaceOnUse" x1="1474.1432" y1="-24.2237" x2="2809.0027" y2="1035.3101" gradientTransform="matrix(0.971 0 0 -0.971 0.1492 3886.1978)">
+		<stop  offset="0" style="stop-color:#000000"/>
+		<stop  offset="1" style="stop-color:#057A5F"/>
+	</linearGradient>
+	
+		<polygon style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#SVGID_00000075155803225568168680000016880480497309043603_);" points="
+		3820.499,4000 961.631,2296.211 1675.14,4000 	"/>
+	
+		<linearGradient id="SVGID_00000073716375676744586330000013519027017296819873_" gradientUnits="userSpaceOnUse" x1="-786.1305" y1="648.1179" x2="1593.6355" y2="2516.6563" gradientTransform="matrix(0.971 0 0 -0.971 0.1492 3886.1978)">
+		<stop  offset="0" style="stop-color:#000000"/>
+		<stop  offset="1" style="stop-color:#057A5F"/>
+	</linearGradient>
+	
+		<polygon style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#SVGID_00000073716375676744586330000013519027017296819873_);" points="
+		1675.14,4000 961.631,2296.211 0,0 0,4000 	"/>
+</g>
+</svg>

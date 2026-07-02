@@ -1,0 +1,33 @@
+# Lokale ontwikkelomgeving voor de Bunny Database (libSQL) variant.
+#
+# In productie is er GEEN database-container: de app praat rechtstreeks met
+# Bunny Database. Voor lokaal ontwikkelen draait hier sqld (de open-source
+# libSQL-server waar Bunny Database op gebaseerd is) als drop-in vervanger.
+name: mooindagcounter-libsql
+
+services:
+  app:
+    build:
+      context: ./web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      LIBSQL_URL: http://db:8080
+      LIBSQL_AUTH_TOKEN: ""
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+    depends_on:
+      - db
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  db:
+    image: ghcr.io/tursodatabase/libsql-server:latest
+    restart: unless-stopped
+    volumes:
+      - libsql_data:/var/lib/sqld
+
+volumes:
+  libsql_data:

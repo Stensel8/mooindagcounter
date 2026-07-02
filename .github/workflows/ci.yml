@@ -6,12 +6,14 @@ on:
   push:
     branches: [main]
     paths:
-      - "src/**"
+      - "microservices/**"
+      - "bunny-libsql/**"
       - ".github/workflows/ci.yml"
   pull_request:
     branches: [main]
     paths:
-      - "src/**"
+      - "microservices/**"
+      - "bunny-libsql/**"
       - ".github/workflows/ci.yml"
 
 jobs:
@@ -36,7 +38,7 @@ jobs:
 
       - name: Voer Ruff uit
         # Controleert stijl en importvolgorde; geeft een fout bij overtredingen.
-        run: ruff check src/web/
+        run: ruff check microservices/web/ bunny-libsql/web/
 
   # --- Statische beveiligingsanalyse (SAST) ---
   # Bandit scant Python-broncode op veelvoorkomende beveiligingsproblemen,
@@ -58,7 +60,7 @@ jobs:
 
       - name: Voer Bandit uit
         # -ll toont alleen medium- en high-severity bevindingen om ruis te beperken.
-        run: bandit -r src/web/ -ll
+        run: bandit -r microservices/web/ bunny-libsql/web/ -ll
 
   # --- Kwetsbaarheidsscan Python-afhankelijkheden ---
   # pip-audit vergelijkt requirements.txt met de PyPA Advisory Database (GHSA/CVE).
@@ -79,24 +81,31 @@ jobs:
         run: pip install pip-audit
 
       - name: Scan dependencies op kwetsbaarheden
-        run: pip-audit -r src/web/requirements.txt
+        run: pip-audit -r microservices/web/requirements.txt -r bunny-libsql/web/requirements.txt
 
   # --- Container image scan ---
   # Trivy bouwt het Docker-image en scant het op bekende CVE's in
   # zowel OS-pakketten (Debian/Alpine) als Python-afhankelijkheden.
   # Resultaten worden als SARIF geupload naar GitHub Security (tabblad "Security > Code scanning").
   trivy:
-    name: Container image scan (Trivy)
+    name: Container image scan (Trivy, ${{ matrix.variant }})
     runs-on: ubuntu-latest
     permissions:
       security-events: write   # Nodig voor het uploaden van SARIF naar GitHub Security.
       contents: read
+    strategy:
+      matrix:
+        include:
+          - variant: microservices
+            context: ./microservices/web
+          - variant: bunny-libsql
+            context: ./bunny-libsql/web
     steps:
       - name: Haal broncode op
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Bouw Docker image voor scan
-        run: docker build -t scan-target:ci ./src/web
+        run: docker build -t scan-target:ci ${{ matrix.context }}
 
       - name: Scan image met Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -116,3 +125,5 @@ jobs:
         uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
         with:
           sarif_file: trivy-results.sarif
+          # Eigen categorie per variant zodat de resultaten elkaar niet overschrijven.
+          category: trivy-${{ matrix.variant }}

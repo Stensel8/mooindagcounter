@@ -3,7 +3,7 @@ name: mooindagcounter
 services:
   db:
     build:
-      context: ./src/db
+      context: ./db
     restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
@@ -21,7 +21,7 @@ services:
 
   app:
     build:
-      context: ./src/web
+      context: ./web
     restart: unless-stopped
     ports:
       - "8080:8080"

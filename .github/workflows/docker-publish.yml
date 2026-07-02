@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - "src/**"
+      - "microservices/**"
+      - "bunny-libsql/**"
       - ".github/workflows/docker-publish.yml"
   workflow_dispatch:
 
@@ -20,10 +21,14 @@ jobs:
     strategy:
       matrix:
         include:
+          # Microservices-variant: web + MariaDB (docker compose / Kubernetes)
           - image: mooindagcounter-web
-            context: ./src/web
+            context: ./microservices/web
           - image: mooindagcounter-db
-            context: ./src/db
+            context: ./microservices/db
+          # Bunny Database-variant: 1 stateless container, database is managed
+          - image: mooindagcounter-libsql
+            context: ./bunny-libsql/web
 
     steps:
       - name: Checkout repository

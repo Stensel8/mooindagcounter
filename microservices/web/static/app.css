@@ -1,0 +1,81 @@
+/* Achtergrondafbeelding voor alle pagina's */
+html {
+    background-color: #031a10;
+}
+
+body {
+    min-height: 100vh;
+    background-image: url("img/Background.svg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-color: #031a10;
+}
+
+/* Huismerk teal-kleur (#009c82) – alle Bootstrap btn-success varianten */
+.btn-success {
+    --bs-btn-bg:             #009c82;
+    --bs-btn-border-color:   #009c82;
+    --bs-btn-hover-bg:       #007a6a;
+    --bs-btn-hover-border-color: #007a6a;
+    --bs-btn-active-bg:      #006b5d;
+    --bs-btn-active-border-color: #006b5d;
+    --bs-btn-focus-shadow-rgb: 0, 156, 130;
+    --bs-btn-disabled-bg:    #009c82;
+    --bs-btn-disabled-border-color: #009c82;
+}
+
+/* Afstudeercounter: fancy aftelklokje op de homepage */
+.afstudeer {
+    border-radius: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: linear-gradient(135deg, #009c82, #006b5d);
+    box-shadow: 0 0 18px rgba(0, 156, 130, 0.45);
+    color: #fff;
+}
+
+.afstudeer-titel {
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.5rem;
+}
+
+.afstudeer-klok {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.afstudeer-vak {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 4rem;
+    padding: 0.4rem 0.5rem;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 0.5rem;
+}
+
+.afstudeer-getal {
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+.afstudeer-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    opacity: 0.85;
+    margin-top: 0.2rem;
+}
+
+/* Tabelkopstijl: Bootstrap .table-success via CSS-variabele én directe override */
+thead.table-success,
+thead.table-success > tr > th {
+    --bs-table-bg:    #009c82;
+    --bs-table-color: #fff;
+    background-color: #009c82 !important;
+    color:            #fff    !important;
+}
